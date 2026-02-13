@@ -980,13 +980,16 @@ Create `services/config/app/dependencies.py`:
 
 ```python
 import os
+import secrets
 from fastapi import HTTPException, Header
 
 
 async def verify_api_key(x_api_key: str = Header(...)):
     """Verify API key for protected endpoints"""
     api_key = os.getenv("API_KEY")
-    if not api_key or x_api_key != api_key:
+    if not api_key:
+        raise HTTPException(status_code=500, detail="API_KEY not configured")
+    if not x_api_key or not secrets.compare_digest(x_api_key, api_key):
         raise HTTPException(status_code=401, detail="Invalid API key")
     return x_api_key
 ```
@@ -1468,8 +1471,9 @@ const httpServer = createServer();
 // Create Socket.IO server
 const io = new SocketIOServer(httpServer, {
   cors: {
-    origin: '*', // In production, specify actual origins
-    methods: ['GET', 'POST']
+    origin: process.env.ALLOWED_ORIGINS?.split(',') || 'http://localhost',
+    methods: ['GET', 'POST'],
+    credentials: true
   },
   transports: ['websocket', 'polling']
 });
@@ -1525,10 +1529,27 @@ io.on('connection', (socket) => {
 
   // Handle client publishing to Redis
   socket.on('publish', async ({ channel, payload }: { channel: string; payload: any }) => {
+    // Validate channel
     if (!ALLOWED_PUBLISH_CHANNELS.test(channel)) {
       logger.warn(`Socket ${socket.id} attempted to publish to unauthorized channel: ${channel}`);
       return;
     }
+
+    // Validate payload size (100KB limit)
+    const payloadStr = JSON.stringify(payload);
+    if (payloadStr.length > 100000) {
+      logger.warn(`Socket ${socket.id} attempted to publish oversized payload (${payloadStr.length} bytes)`);
+      socket.emit('error', { message: 'Payload too large' });
+      return;
+    }
+
+    // Validate payload structure
+    if (!payload || typeof payload !== 'object') {
+      logger.warn(`Socket ${socket.id} sent invalid payload type`);
+      socket.emit('error', { message: 'Invalid payload format' });
+      return;
+    }
+
     logger.debug(`Socket ${socket.id} publishing to ${channel}:`, payload);
     await redisBridge.publish(channel, payload);
   });
@@ -1612,16 +1633,21 @@ export class RedisBridge {
 
   async unsubscribe(channel: string, handler?: (message: any) => void): Promise<void> {
     const handlers = this.channelHandlers.get(channel);
-    if (handlers) {
-      if (handler) {
-        handlers.delete(handler);
-      }
-      // Only unsubscribe from Redis if no more handlers
-      if (handlers.size === 0) {
-        await this.subscriberClient.unsubscribe(channel);
-        this.channelHandlers.delete(channel);
-        logger.info(`Unsubscribed from Redis channel: ${channel}`);
-      }
+    if (!handlers) return;
+
+    if (handler) {
+      // Remove specific handler
+      handlers.delete(handler);
+    } else {
+      // No handler specified = remove all handlers (e.g., on disconnect)
+      handlers.clear();
+    }
+
+    // Only unsubscribe from Redis if no more handlers
+    if (handlers.size === 0) {
+      await this.subscriberClient.unsubscribe(channel);
+      this.channelHandlers.delete(channel);
+      logger.info(`Unsubscribed from Redis channel: ${channel}`);
     }
   }
 

@@ -51,7 +51,7 @@ This plan covers:
 
 ### Day 25: Performance Optimization
 
-**Targets** (from PRODUCT_SPEC.md Section 11):
+**Targets** (from PRODUCT_SPEC.md Section 11 - Performance Requirements):
 - Cold start: < 15 seconds
 - UI load time: < 2 seconds
 - Total memory: < 1.5GB (5 modules)
