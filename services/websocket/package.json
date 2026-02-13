@@ -1,0 +1,21 @@
+{
+  "name": "ozmirror-websocket-bridge",
+  "version": "1.0.0",
+  "description": "WebSocket bridge for OzMirror real-time communication",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "ts-node src/server.ts"
+  },
+  "dependencies": {
+    "socket.io": "^4.6.1",
+    "redis": "^4.6.5",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2"
+  }
+}

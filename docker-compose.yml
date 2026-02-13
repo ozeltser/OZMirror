@@ -1,0 +1,162 @@
+version: '3.8'
+
+services:
+  # =====================================
+  # API Gateway (Nginx)
+  # =====================================
+  gateway:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: ozmirror-gateway
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      ui:
+        condition: service_started
+      config-service:
+        condition: service_healthy
+      websocket-bridge:
+        condition: service_healthy
+    networks:
+      - ozmirror-network
+    restart: unless-stopped
+
+  # =====================================
+  # UI Container (React SPA)
+  # =====================================
+  ui:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+    container_name: ozmirror-ui
+    environment:
+      - NODE_ENV=production
+    networks:
+      - ozmirror-network
+    restart: unless-stopped
+
+  # =====================================
+  # Configuration Service (FastAPI)
+  # =====================================
+  config-service:
+    build:
+      context: ./services/config
+      dockerfile: Dockerfile
+    container_name: ozmirror-config
+    environment:
+      - REDIS_URL=${REDIS_URL}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - CONFIG_STORAGE_TYPE=${CONFIG_STORAGE_TYPE:-json}
+      - CONFIG_DATA_DIR=/app/data
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - API_KEY=${API_KEY}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+    volumes:
+      - config-data:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - ozmirror-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # =====================================
+  # Redis (Message Broker)
+  # =====================================
+  redis:
+    image: redis:7-alpine
+    container_name: ozmirror-redis
+    command: redis-server --appendonly yes --appendfsync everysec --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis-data:/data
+    networks:
+      - ozmirror-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  # =====================================
+  # WebSocket Bridge
+  # =====================================
+  websocket-bridge:
+    build:
+      context: ./services/websocket
+      dockerfile: Dockerfile
+    container_name: ozmirror-websocket
+    environment:
+      - REDIS_URL=${REDIS_URL}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - PORT=${WEBSOCKET_PORT:-8080}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - API_KEY=${API_KEY}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - ozmirror-network
+    restart: unless-stopped
+
+  # =====================================
+  # Module: Clock
+  # =====================================
+  clock-module:
+    build:
+      context: ./modules/clock
+      dockerfile: Dockerfile
+    container_name: ozmirror-clock
+    environment:
+      - MODULE_ID=clock
+      - CONFIG_SERVICE_URL=${CONFIG_SERVICE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - API_KEY=${API_KEY}
+      - PORT=3001
+    volumes:
+      - clock-data:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
+      config-service:
+        condition: service_healthy
+    networks:
+      - ozmirror-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+# =====================================
+# Volumes
+# =====================================
+volumes:
+  config-data:
+    driver: local
+  redis-data:
+    driver: local
+  clock-data:
+    driver: local
+
+# =====================================
+# Networks
+# =====================================
+networks:
+  ozmirror-network:
+    name: ozmirror-network
+    driver: bridge
