@@ -1,3 +1,22 @@
+# Build stage
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including devDependencies for build)
+RUN npm ci
+
+# Copy source code
+COPY src/ ./src/
+COPY tsconfig.json ./
+
+# Build TypeScript
+RUN npm run build
+
+# Production stage
 FROM node:18-alpine
 
 WORKDIR /app
@@ -8,15 +27,11 @@ RUN apk add --no-cache curl
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Install only production dependencies
+RUN npm ci --only=production
 
-# Copy source code
-COPY src/ ./src/
-COPY tsconfig.json ./
-
-# Build TypeScript
-RUN npm run build
+# Copy built files from builder stage
+COPY --from=builder /app/dist ./dist
 
 # Create data directory
 RUN mkdir -p /app/data

@@ -3,6 +3,11 @@ version: '3.8'
 # Development overrides for hot reload and debugging
 
 services:
+  gateway:
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf  # Writable for dev config changes
+      - ./nginx/ssl:/etc/nginx/ssl  # Writable for dev
+
   ui:
     build:
       context: ./ui

@@ -45,3 +45,4 @@ nginx/ssl/*.crt
 # Temporary files
 *.tmp
 .cache/
+.claude/

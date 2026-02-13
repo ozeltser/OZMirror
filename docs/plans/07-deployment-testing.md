@@ -173,4 +173,4 @@ When all checklists are complete, you have a production-ready OzMirror v1 deploy
 ---
 
 **Previous Plan**: [Now Playing Module Plan](06-now-playing.md)
-**Back to**: [Master Coordination Plan](C:\Users\ozlis\.claude\plans\lively-chasing-donut.md)
+**Back to**: [Master Coordination Plan](../README.md)
