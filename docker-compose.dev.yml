@@ -1,0 +1,39 @@
+version: '3.8'
+
+# Development overrides for hot reload and debugging
+
+services:
+  ui:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile.dev
+      target: development
+    volumes:
+      - ./ui/src:/app/src:ro
+      - ./ui/public:/app/public:ro
+    environment:
+      - NODE_ENV=development
+    ports:
+      - "5173:5173"  # Vite dev server
+    command: npm run dev
+
+  config-service:
+    volumes:
+      - ./services/config/app:/app/app:ro
+    environment:
+      - LOG_LEVEL=debug
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  websocket-bridge:
+    volumes:
+      - ./services/websocket/src:/app/src:ro
+    environment:
+      - LOG_LEVEL=debug
+      - NODE_ENV=development
+
+  clock-module:
+    volumes:
+      - ./modules/clock/src:/app/src:ro
+    environment:
+      - LOG_LEVEL=debug
+      - NODE_ENV=development

@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.pytest_cache/
+venv/
+env/
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data
+services/config/data/*.json
+modules/*/data/*.db
+modules/*/data/*.sqlite
+
+# SSL certificates (if self-generated)
+nginx/ssl/*.key
+nginx/ssl/*.crt
+
+# Temporary files
+*.tmp
+.cache/
