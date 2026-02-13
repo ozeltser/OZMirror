@@ -124,6 +124,13 @@ Create `/path/to/OZMirror\.env.example`:
 # Copy this file to .env and update with your values
 
 # ----------------
+# Security
+# ----------------
+API_KEY=your_secure_api_key_here_change_in_production
+ALLOWED_ORIGINS=http://localhost
+REDIS_PASSWORD=
+
+# ----------------
 # Redis
 # ----------------
 REDIS_URL=redis://redis:6379
@@ -328,9 +335,12 @@ services:
     container_name: ozmirror-config
     environment:
       - REDIS_URL=${REDIS_URL}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
       - CONFIG_STORAGE_TYPE=${CONFIG_STORAGE_TYPE:-json}
       - CONFIG_DATA_DIR=/app/data
       - LOG_LEVEL=${LOG_LEVEL:-info}
+      - API_KEY=${API_KEY}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost}
     volumes:
       - config-data:/app/data
     depends_on:
@@ -352,13 +362,25 @@ services:
   redis:
     image: redis:7-alpine
     container_name: ozmirror-redis
-    command: redis-server --appendonly yes --appendfsync everysec
+    command: >
+      sh -c "if [ -n \"$$REDIS_PASSWORD\" ]; then
+        redis-server --appendonly yes --appendfsync everysec --requirepass \"$$REDIS_PASSWORD\";
+      else
+        redis-server --appendonly yes --appendfsync everysec;
+      fi"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     volumes:
       - redis-data:/data
     networks:
       - ozmirror-network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: >
+        sh -c "if [ -n \"$$REDIS_PASSWORD\" ]; then
+          redis-cli -a \"$$REDIS_PASSWORD\" ping;
+        else
+          redis-cli ping;
+        fi"
       interval: 10s
       timeout: 3s
       retries: 3
@@ -374,8 +396,10 @@ services:
     container_name: ozmirror-websocket
     environment:
       - REDIS_URL=${REDIS_URL}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
       - PORT=${WEBSOCKET_PORT:-8080}
       - LOG_LEVEL=${LOG_LEVEL:-info}
+      - API_KEY=${API_KEY}
     depends_on:
       redis:
         condition: service_healthy
@@ -395,7 +419,9 @@ services:
       - MODULE_ID=clock
       - CONFIG_SERVICE_URL=${CONFIG_SERVICE_URL}
       - REDIS_URL=${REDIS_URL}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
       - PORT=3001
+      - API_KEY=${API_KEY}
     volumes:
       - clock-data:/app/data
     depends_on:
@@ -950,6 +976,21 @@ class HealthResponse(BaseModel):
 
 #### Step 3: Create Database Layer (1 hour)
 
+Create `services/config/app/dependencies.py`:
+
+```python
+import os
+from fastapi import HTTPException, Header
+
+
+async def verify_api_key(x_api_key: str = Header(...)):
+    """Verify API key for protected endpoints"""
+    api_key = os.getenv("API_KEY")
+    if not api_key or x_api_key != api_key:
+        raise HTTPException(status_code=401, detail="Invalid API key")
+    return x_api_key
+```
+
 Create `services/config/app/database.py`:
 
 ```python
@@ -1088,9 +1129,10 @@ db = JSONDatabase(os.getenv("CONFIG_DATA_DIR", "/app/data"))
 Create `services/config/app/routes/layout.py`:
 
 ```python
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from app.models import LayoutData, LayoutProfile
 from app.database import db
+from app.dependencies import verify_api_key
 from typing import List
 
 router = APIRouter(prefix="/api/config/layout", tags=["layout"])
@@ -1102,7 +1144,7 @@ async def get_layout():
     return db.get_layout()
 
 
-@router.put("")
+@router.put("", dependencies=[Depends(verify_api_key)])
 async def update_layout(layout: LayoutData):
     """Update layout data"""
     db.save_layout(layout)
@@ -1116,7 +1158,7 @@ async def get_profiles():
     return list(layout.layouts.keys())
 
 
-@router.post("/profiles")
+@router.post("/profiles", dependencies=[Depends(verify_api_key)])
 async def create_profile(name: str, copyFrom: str = "default"):
     """Create new layout profile"""
     layout = db.get_layout()
@@ -1134,7 +1176,7 @@ async def create_profile(name: str, copyFrom: str = "default"):
     return {"success": True, "profileId": name}
 
 
-@router.delete("/profiles/{name}")
+@router.delete("/profiles/{name}", dependencies=[Depends(verify_api_key)])
 async def delete_profile(name: str):
     """Delete layout profile"""
     if name == "default":
@@ -1158,9 +1200,10 @@ async def delete_profile(name: str):
 Create `services/config/app/routes/modules.py`:
 
 ```python
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from app.models import RegisteredModule, ModuleConfig
 from app.database import db
+from app.dependencies import verify_api_key
 from typing import List, Any, Dict
 
 router = APIRouter(prefix="/api/config/modules", tags=["modules"])
@@ -1181,7 +1224,7 @@ async def get_module(module_id: str):
     return module
 
 
-@router.post("/register")
+@router.post("/register", dependencies=[Depends(verify_api_key)])
 async def register_module(module: RegisteredModule):
     """Register a new module or update existing"""
     db.register_module(module)
@@ -1209,7 +1252,7 @@ async def get_module_config(module_id: str, instance_id: str):
     return config.config
 
 
-@router.put("/{module_id}/config/{instance_id}")
+@router.put("/{module_id}/config/{instance_id}", dependencies=[Depends(verify_api_key)])
 async def update_module_config(module_id: str, instance_id: str, config: Dict[str, Any]):
     """Update configuration for a specific module instance"""
     layout = db.get_layout()
@@ -1235,9 +1278,10 @@ async def update_module_config(module_id: str, instance_id: str, config: Dict[st
 Create `services/config/app/routes/settings.py`:
 
 ```python
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from app.models import GlobalSettings
 from app.database import db
+from app.dependencies import verify_api_key
 
 router = APIRouter(prefix="/api/config/settings", tags=["settings"])
 
@@ -1248,7 +1292,7 @@ async def get_settings():
     return db.get_settings()
 
 
-@router.put("")
+@router.put("", dependencies=[Depends(verify_api_key)])
 async def update_settings(settings: GlobalSettings):
     """Update global settings"""
     db.save_settings(settings)
@@ -1277,8 +1321,8 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify actual origins
-    allow_credentials=True,
+    allow_origins=os.getenv("ALLOWED_ORIGINS", "http://localhost").split(","),
+    allow_credentials=False,  # Using API keys instead
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -1433,6 +1477,18 @@ const io = new SocketIOServer(httpServer, {
 // Create Redis bridge
 const redisBridge = new RedisBridge(process.env.REDIS_URL || 'redis://localhost:6379');
 
+// WebSocket authentication middleware
+io.use((socket, next) => {
+  const apiKey = socket.handshake.auth.apiKey;
+  if (!apiKey || apiKey !== process.env.API_KEY) {
+    return next(new Error('Authentication error'));
+  }
+  next();
+});
+
+// Channel whitelist for publish operations
+const ALLOWED_PUBLISH_CHANNELS = /^module:(clock|weather|calendar|rss|system_stats|now_playing|sticky_notes):.+$/;
+
 // Socket.IO connection handling
 io.on('connection', (socket) => {
   logger.info(`Client connected: ${socket.id}`);
@@ -1469,6 +1525,10 @@ io.on('connection', (socket) => {
 
   // Handle client publishing to Redis
   socket.on('publish', async ({ channel, payload }: { channel: string; payload: any }) => {
+    if (!ALLOWED_PUBLISH_CHANNELS.test(channel)) {
+      logger.warn(`Socket ${socket.id} attempted to publish to unauthorized channel: ${channel}`);
+      return;
+    }
     logger.debug(`Socket ${socket.id} publishing to ${channel}:`, payload);
     await redisBridge.publish(channel, payload);
   });
@@ -1512,8 +1572,12 @@ export class RedisBridge {
   private channelHandlers: Map<string, Set<(message: any) => void>>;
 
   constructor(redisUrl: string) {
-    this.publisherClient = new Redis(redisUrl);
-    this.subscriberClient = new Redis(redisUrl);
+    this.publisherClient = new Redis(redisUrl, {
+      password: process.env.REDIS_PASSWORD
+    });
+    this.subscriberClient = new Redis(redisUrl, {
+      password: process.env.REDIS_PASSWORD
+    });
     this.channelHandlers = new Map();
 
     // Set up subscriber message handler
@@ -1546,12 +1610,18 @@ export class RedisBridge {
     this.channelHandlers.get(channel)!.add(handler);
   }
 
-  async unsubscribe(channel: string): Promise<void> {
+  async unsubscribe(channel: string, handler?: (message: any) => void): Promise<void> {
     const handlers = this.channelHandlers.get(channel);
-    if (handlers && handlers.size === 0) {
-      await this.subscriberClient.unsubscribe(channel);
-      this.channelHandlers.delete(channel);
-      logger.info(`Unsubscribed from Redis channel: ${channel}`);
+    if (handlers) {
+      if (handler) {
+        handlers.delete(handler);
+      }
+      // Only unsubscribe from Redis if no more handlers
+      if (handlers.size === 0) {
+        await this.subscriberClient.unsubscribe(channel);
+        this.channelHandlers.delete(channel);
+        logger.info(`Unsubscribed from Redis channel: ${channel}`);
+      }
     }
   }
 
@@ -1928,6 +1998,55 @@ docker stats --no-stream
 
 ---
 
+## Security Notes
+
+The infrastructure includes multiple layers of security to protect the OzMirror system:
+
+### API Key Authentication
+- **All write operations** (POST, PUT, DELETE) to the Configuration Service require API key authentication via the `X-API-Key` header
+- **Read operations** (GET) remain public for easier access to configuration data
+- Set your API key in the `.env` file as `API_KEY=your_secure_key_here`
+- Modules must include this API key when registering or updating configurations
+
+### WebSocket Authentication
+- **All WebSocket connections** require API key authentication passed via `socket.handshake.auth.apiKey`
+- Clients must authenticate before they can subscribe to channels or publish messages
+- Example client connection:
+  ```javascript
+  const socket = io('http://localhost:80/ws', {
+    auth: {
+      apiKey: 'your_api_key_here'
+    }
+  });
+  ```
+
+### Redis Security
+- **Password protection** is enabled for Redis connections
+- Set `REDIS_PASSWORD` in your `.env` file (optional but recommended for production)
+- All services (Config Service, WebSocket Bridge, Modules) use the same Redis password
+
+### CORS Configuration
+- **Production origins** should be explicitly configured via the `ALLOWED_ORIGINS` environment variable
+- Default: `http://localhost` (for development)
+- For production, set multiple origins: `ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com`
+- `allow_credentials` is set to `False` since we use API key authentication instead of cookies
+
+### Channel Whitelisting
+- **WebSocket publish operations** are restricted to module-specific channels only
+- Allowed pattern: `module:(clock|weather|calendar|rss|system_stats|now_playing|sticky_notes):{data}`
+- Prevents unauthorized clients from publishing to system channels or other sensitive channels
+- System events should only be published by trusted backend services
+
+### Production Recommendations
+1. **Use strong API keys**: Generate cryptographically secure random keys (e.g., 32+ characters)
+2. **Enable HTTPS**: Configure SSL certificates in the Nginx gateway for production deployments
+3. **Set Redis password**: Always use a strong password for Redis in production
+4. **Restrict CORS origins**: Never use `*` in production - specify exact domains
+5. **Monitor logs**: Watch for authentication failures and unauthorized access attempts
+6. **Rotate keys**: Periodically rotate API keys and Redis passwords
+
+---
+
 ## Troubleshooting
 
 ### Container Won't Start
@@ -2025,6 +2144,7 @@ docker-compose exec config-service curl localhost:8000/health
 │   │       ├── main.py
 │   │       ├── models.py
 │   │       ├── database.py
+│   │       ├── dependencies.py
 │   │       └── routes/
 │   │           ├── layout.py
 │   │           ├── modules.py

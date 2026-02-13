@@ -2,6 +2,9 @@ FROM node:18-alpine
 
 WORKDIR /app
 
+# Install curl for healthcheck
+RUN apk add --no-cache curl
+
 # Copy package files
 COPY package*.json ./
 
@@ -17,6 +20,10 @@ RUN npm run build
 
 # Expose port
 EXPOSE 8080
+
+# Health check (requires /health endpoint in implementation)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
 
 # Run application
 CMD ["node", "dist/server.js"]

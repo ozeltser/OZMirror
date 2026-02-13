@@ -21,7 +21,7 @@ services:
       config-service:
         condition: service_healthy
       websocket-bridge:
-        condition: service_started
+        condition: service_healthy
     networks:
       - ozmirror-network
     restart: unless-stopped
@@ -50,9 +50,12 @@ services:
     container_name: ozmirror-config
     environment:
       - REDIS_URL=${REDIS_URL}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
       - CONFIG_STORAGE_TYPE=${CONFIG_STORAGE_TYPE:-json}
       - CONFIG_DATA_DIR=/app/data
       - LOG_LEVEL=${LOG_LEVEL:-info}
+      - API_KEY=${API_KEY}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
     volumes:
       - config-data:/app/data
     depends_on:
@@ -74,13 +77,13 @@ services:
   redis:
     image: redis:7-alpine
     container_name: ozmirror-redis
-    command: redis-server --appendonly yes --appendfsync everysec
+    command: redis-server --appendonly yes --appendfsync everysec --requirepass ${REDIS_PASSWORD}
     volumes:
       - redis-data:/data
     networks:
       - ozmirror-network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 3s
       retries: 3
@@ -96,8 +99,10 @@ services:
     container_name: ozmirror-websocket
     environment:
       - REDIS_URL=${REDIS_URL}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
       - PORT=${WEBSOCKET_PORT:-8080}
       - LOG_LEVEL=${LOG_LEVEL:-info}
+      - API_KEY=${API_KEY}
     depends_on:
       redis:
         condition: service_healthy
@@ -117,6 +122,8 @@ services:
       - MODULE_ID=clock
       - CONFIG_SERVICE_URL=${CONFIG_SERVICE_URL}
       - REDIS_URL=${REDIS_URL}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - API_KEY=${API_KEY}
       - PORT=3001
     volumes:
       - clock-data:/app/data
