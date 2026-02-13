@@ -9,8 +9,8 @@ services:
       dockerfile: Dockerfile.dev
       target: development
     volumes:
-      - ./ui/src:/app/src:ro
-      - ./ui/public:/app/public:ro
+      - ./ui/src:/app/src
+      - ./ui/public:/app/public
     environment:
       - NODE_ENV=development
     ports:
@@ -19,21 +19,21 @@ services:
 
   config-service:
     volumes:
-      - ./services/config/app:/app/app:ro
+      - ./services/config/app:/app/app
     environment:
       - LOG_LEVEL=debug
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   websocket-bridge:
     volumes:
-      - ./services/websocket/src:/app/src:ro
+      - ./services/websocket/src:/app/src
     environment:
       - LOG_LEVEL=debug
       - NODE_ENV=development
 
   clock-module:
     volumes:
-      - ./modules/clock/src:/app/src:ro
+      - ./modules/clock/src:/app/src
     environment:
       - LOG_LEVEL=debug
       - NODE_ENV=development

@@ -5,7 +5,6 @@ This directory contains detailed implementation plans for building OzMirror.
 ## Plan Structure
 
 ### Master Coordination Plan
-📍 **Location**: `C:\Users\ozlis\.claude\plans\lively-chasing-donut.md`
 
 The master plan provides:
 - Overall project timeline (27 days / 8 phases)
@@ -67,7 +66,7 @@ Follow the plans in sequence:
 Ready to begin? Start here:
 
 ```bash
-cd d:\projects\OZMirror
+cd /path/to/OZMirror
 
 # Read the first plan
 # docs/plans/01-infrastructure-setup.md

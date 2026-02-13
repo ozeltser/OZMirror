@@ -16,8 +16,6 @@ This plan covers:
 
 *This detailed plan will be expanded when you're ready to start Phase 7-8.*
 
-Refer to the [Master Coordination Plan](C:\Users\ozlis\.claude\plans\lively-chasing-donut.md) for high-level overview.
-
 ---
 
 ## Phase 7: Deployment (Days 23-24)

@@ -14,8 +14,6 @@ This plan covers:
 
 *This detailed plan will be expanded when you're ready to start Phase 2.*
 
-Refer to the [Master Coordination Plan](C:\Users\ozlis\.claude\plans\lively-chasing-donut.md) for high-level overview.
-
 ---
 
 ## Phase 2: UI Foundation (Days 10-12)

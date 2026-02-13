@@ -27,7 +27,7 @@ This plan covers the foundation of the OzMirror system:
 
 #### Step 1: Create Directory Structure (30 minutes)
 
-Run these commands from your project root (`d:\projects\OZMirror`):
+Run these commands from your project root (`/path/to/OZMirror`):
 
 ```bash
 # UI (React frontend)
@@ -61,7 +61,7 @@ ls -la
 
 #### Step 2: Create .gitignore (10 minutes)
 
-Create `d:\projects\OZMirror\.gitignore`:
+Create `/path/to/OZMirror\.gitignore`:
 
 ```gitignore
 # Dependencies
@@ -115,7 +115,7 @@ nginx/ssl/*.crt
 
 #### Step 3: Create .env.example (15 minutes)
 
-Create `d:\projects\OZMirror\.env.example`:
+Create `/path/to/OZMirror\.env.example`:
 
 ```bash
 # ================================================
@@ -174,7 +174,7 @@ cp .env.example .env
 
 #### Step 4: Create README.md (15 minutes)
 
-Create `d:\projects\OZMirror\README.md`:
+Create `/path/to/OZMirror\README.md`:
 
 ```markdown
 # OzMirror - Smart Display Platform
@@ -273,7 +273,7 @@ Inspired by [MagicMirror²](https://magicmirror.builders/)
 
 #### Step 1: Create Base docker-compose.yml (1 hour)
 
-Create `d:\projects\OZMirror\docker-compose.yml`:
+Create `/path/to/OZMirror\docker-compose.yml`:
 
 ```yaml
 version: '3.8'
@@ -435,7 +435,7 @@ networks:
 
 #### Step 2: Create docker-compose.dev.yml (30 minutes)
 
-Create `d:\projects\OZMirror\docker-compose.dev.yml`:
+Create `/path/to/OZMirror\docker-compose.dev.yml`:
 
 ```yaml
 version: '3.8'
@@ -2003,7 +2003,7 @@ docker-compose exec config-service curl localhost:8000/health
 ## Files Created Summary
 
 ```
-d:\projects\OZMirror\
+/path/to/OZMirror\
 ├── .gitignore
 ├── .env.example
 ├── .env

@@ -19,8 +19,6 @@ These modules build on the Clock module pattern but add:
 
 *This detailed plan will be expanded when you're ready to start Phase 3.*
 
-Refer to the [Master Coordination Plan](C:\Users\ozlis\.claude\plans\lively-chasing-donut.md) for high-level overview.
-
 ---
 
 ## Day 13: Sticky Notes Module

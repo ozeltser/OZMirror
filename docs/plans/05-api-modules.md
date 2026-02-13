@@ -21,8 +21,6 @@ These modules introduce:
 
 *This detailed plan will be expanded when you're ready to start Phase 4.*
 
-Refer to the [Master Coordination Plan](C:\Users\ozlis\.claude\plans\lively-chasing-donut.md) for high-level overview.
-
 ---
 
 ## Day 15: Weather Module

@@ -19,8 +19,6 @@ The Clock module is the **first module** to implement. It proves the entire arch
 
 *This detailed plan will be expanded when you're ready to start Phase 2.*
 
-Refer to the [Master Coordination Plan](C:\Users\ozlis\.claude\plans\lively-chasing-donut.md) for high-level overview.
-
 ---
 
 ## Backend Implementation (Node.js + Express)

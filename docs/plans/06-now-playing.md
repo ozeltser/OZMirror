@@ -18,8 +18,6 @@ The **Now Playing** module is the most complex module, featuring:
 
 *This detailed plan will be expanded when you're ready to start Phase 6.*
 
-Refer to the [Master Coordination Plan](C:\Users\ozlis\.claude\plans\lively-chasing-donut.md) for high-level overview.
-
 ---
 
 ## Integration Options
