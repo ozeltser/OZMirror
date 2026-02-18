@@ -49,17 +49,16 @@ services:
       dockerfile: Dockerfile
     container_name: ozmirror-config
     environment:
-      - REDIS_URL=${REDIS_URL}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - CONFIG_STORAGE_TYPE=${CONFIG_STORAGE_TYPE:-json}
-      - CONFIG_DATA_DIR=/app/data
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - API_KEY=${API_KEY}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
-    volumes:
-      - config-data:/app/data
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost}
+      - MYSQL_HOST=${MYSQL_HOST:-mysql}
+      - MYSQL_PORT=${MYSQL_PORT:-3306}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-ozmirror}
+      - MYSQL_USER=${MYSQL_USER:-ozmirror}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
     depends_on:
-      redis:
+      mysql:
         condition: service_healthy
     networks:
       - ozmirror-network
@@ -69,6 +68,29 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    restart: unless-stopped
+
+  # =====================================
+  # MySQL (Config Storage)
+  # =====================================
+  mysql:
+    image: mysql:8.0
+    container_name: ozmirror-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-ozmirror}
+      MYSQL_USER: ${MYSQL_USER:-ozmirror}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - ozmirror-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "--password=${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     restart: unless-stopped
 
   # =====================================
@@ -146,7 +168,7 @@ services:
 # Volumes
 # =====================================
 volumes:
-  config-data:
+  mysql-data:
     driver: local
   redis-data:
     driver: local
