@@ -39,7 +39,12 @@ export class RedisBridge {
         const handlers = this.channelHandlers.get(channel);
         if (!handlers) return;
         let parsed: any;
-        try { parsed = JSON.parse(message); } catch { parsed = message; }
+        try {
+          parsed = JSON.parse(message);
+        } catch {
+          logger.warn(`Non-JSON message received on channel "${channel}"; forwarding as raw string`);
+          parsed = message;
+        }
         handlers.forEach((h) => h(parsed));
       });
 

@@ -1,4 +1,5 @@
 import { createServer, IncomingMessage, ServerResponse } from 'http';
+import { timingSafeEqual } from 'crypto';
 import { Server as SocketIOServer } from 'socket.io';
 import { RedisBridge } from './redis-bridge';
 import { logger } from './logger';
@@ -53,7 +54,13 @@ if (!API_KEY) {
 
 io.use((socket, next) => {
   const provided = socket.handshake.auth?.apiKey;
-  if (provided !== API_KEY) {
+  let valid = false;
+  if (typeof provided === 'string') {
+    const a = Buffer.from(provided);
+    const b = Buffer.from(API_KEY!);
+    valid = a.length === b.length && timingSafeEqual(a, b);
+  }
+  if (!valid) {
     logger.warn(`Rejected connection from ${socket.handshake.address}: bad API key`);
     return next(new Error('Authentication error'));
   }
