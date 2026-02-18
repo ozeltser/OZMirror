@@ -69,54 +69,70 @@ io.on('connection', (socket) => {
 
   // Per-socket map of channel → handler so we can remove the exact
   // handler on unsubscribe / disconnect without affecting other sockets.
-  const socketHandlers = new Map<string, (message: any) => void>();
+  const socketHandlers = new Map<string, (message: unknown) => void>();
 
   socket.on('subscribe', async (channels: string | string[]) => {
-    const list = Array.isArray(channels) ? channels : [channels];
-    for (const channel of list) {
-      if (!ALLOWED_MODULE_CHANNELS.test(channel)) {
-        logger.warn(`Socket ${socket.id} attempted subscribe to disallowed channel: ${channel}`);
-        continue;
-      }
-      if (socketHandlers.has(channel)) continue; // already subscribed
+    try {
+      const list = Array.isArray(channels) ? channels : [channels];
+      for (const channel of list) {
+        if (!ALLOWED_MODULE_CHANNELS.test(channel)) {
+          logger.warn(`Socket ${socket.id} attempted subscribe to disallowed channel: ${channel}`);
+          continue;
+        }
+        if (socketHandlers.has(channel)) continue; // already subscribed
 
-      const handler = (message: any) => {
-        socket.emit('message', { channel, payload: message });
-      };
-      socketHandlers.set(channel, handler);
-      await redisBridge.subscribe(channel, handler);
-      logger.debug(`Socket ${socket.id} subscribed to ${channel}`);
+        const handler = (message: unknown) => {
+          socket.emit('message', { channel, payload: message });
+        };
+        socketHandlers.set(channel, handler);
+        await redisBridge.subscribe(channel, handler);
+        logger.debug(`Socket ${socket.id} subscribed to ${channel}`);
+      }
+    } catch (err) {
+      logger.error(`subscribe error on socket ${socket.id}: ${err instanceof Error ? err.stack ?? err.message : String(err)}`);
     }
   });
 
   socket.on('unsubscribe', async (channels: string | string[]) => {
-    const list = Array.isArray(channels) ? channels : [channels];
-    for (const channel of list) {
-      const handler = socketHandlers.get(channel);
-      if (handler) {
-        await redisBridge.unsubscribe(channel, handler);
-        socketHandlers.delete(channel);
-        logger.debug(`Socket ${socket.id} unsubscribed from ${channel}`);
+    try {
+      const list = Array.isArray(channels) ? channels : [channels];
+      for (const channel of list) {
+        const handler = socketHandlers.get(channel);
+        if (handler) {
+          await redisBridge.unsubscribe(channel, handler);
+          socketHandlers.delete(channel);
+          logger.debug(`Socket ${socket.id} unsubscribed from ${channel}`);
+        }
       }
+    } catch (err) {
+      logger.error(`unsubscribe error on socket ${socket.id}: ${err instanceof Error ? err.stack ?? err.message : String(err)}`);
     }
   });
 
-  socket.on('publish', async ({ channel, payload }: { channel: string; payload: any }) => {
-    if (!ALLOWED_MODULE_CHANNELS.test(channel)) {
-      logger.warn(`Socket ${socket.id} attempted publish to disallowed channel: ${channel}`);
-      return;
+  socket.on('publish', async ({ channel, payload }: { channel: string; payload: unknown }) => {
+    try {
+      if (!ALLOWED_MODULE_CHANNELS.test(channel)) {
+        logger.warn(`Socket ${socket.id} attempted publish to disallowed channel: ${channel}`);
+        return;
+      }
+      await redisBridge.publish(channel, payload);
+    } catch (err) {
+      logger.error(`publish error on socket ${socket.id}: ${err instanceof Error ? err.stack ?? err.message : String(err)}`);
     }
-    await redisBridge.publish(channel, payload);
   });
 
   socket.on('disconnect', async () => {
-    logger.info(`Client disconnected: ${socket.id}`);
-    await Promise.all(
-      Array.from(socketHandlers).map(([channel, handler]) =>
-        redisBridge.unsubscribe(channel, handler)
-      )
-    );
-    socketHandlers.clear();
+    try {
+      logger.info(`Client disconnected: ${socket.id}`);
+      await Promise.all(
+        Array.from(socketHandlers).map(([channel, handler]) =>
+          redisBridge.unsubscribe(channel, handler)
+        )
+      );
+      socketHandlers.clear();
+    } catch (err) {
+      logger.error(`disconnect cleanup error on socket ${socket.id}: ${err instanceof Error ? err.stack ?? err.message : String(err)}`);
+    }
   });
 });
 

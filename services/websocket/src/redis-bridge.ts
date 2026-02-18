@@ -1,7 +1,7 @@
 import { createClient, RedisClientType } from 'redis';
 import { logger } from './logger';
 
-type MessageHandler = (message: any) => void;
+type MessageHandler = (message: unknown) => void;
 
 export class RedisBridge {
   private publisher: RedisClientType;
@@ -42,7 +42,7 @@ export class RedisBridge {
       await this.subscriber.subscribe(channel, (message) => {
         const handlers = this.channelHandlers.get(channel);
         if (!handlers) return;
-        let parsed: any;
+        let parsed: unknown;
         try {
           parsed = JSON.parse(message);
         } catch {
