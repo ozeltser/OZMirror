@@ -8,8 +8,19 @@ const API_KEY = process.env.API_KEY;
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 const REDIS_PASSWORD = process.env.REDIS_PASSWORD;
 
-// Publish is restricted to module-owned channels; system channels are
-// backend-only and must not be writable by browser clients.
+// Comma-separated list of allowed CORS origins (e.g. "http://localhost,https://ozmirror.example.com").
+// Defaults to localhost only; set explicitly in production.
+const ALLOWED_CORS_ORIGINS: string[] = (process.env.ALLOWED_CORS_ORIGINS || 'http://localhost')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+// Clients may only subscribe to module-owned channels.
+// System/internal channels must not be readable by browser clients.
+const ALLOWED_SUBSCRIBE_CHANNELS =
+  /^module:(clock|weather|calendar|rss|system_stats|now_playing|sticky_notes):.+$/;
+
+// Publish is restricted to the same set of module-owned channels.
 const ALLOWED_PUBLISH_CHANNELS =
   /^module:(clock|weather|calendar|rss|system_stats|now_playing|sticky_notes):.+$/;
 
@@ -27,7 +38,7 @@ const httpServer = createServer((req: IncomingMessage, res: ServerResponse) => {
 
 // ── Socket.io ──────────────────────────────────────────────────────────────
 const io = new SocketIOServer(httpServer, {
-  cors: { origin: '*', methods: ['GET', 'POST'] },
+  cors: { origin: ALLOWED_CORS_ORIGINS, methods: ['GET', 'POST'] },
   transports: ['websocket', 'polling']
 });
 
@@ -35,11 +46,12 @@ const io = new SocketIOServer(httpServer, {
 const redisBridge = new RedisBridge(REDIS_URL, REDIS_PASSWORD);
 
 // ── Auth middleware ────────────────────────────────────────────────────────
+if (!API_KEY) {
+  logger.error('API_KEY environment variable is not set — refusing to start');
+  process.exit(1);
+}
+
 io.use((socket, next) => {
-  if (!API_KEY) {
-    // No key configured — allow connections (dev mode)
-    return next();
-  }
   const provided = socket.handshake.auth?.apiKey;
   if (provided !== API_KEY) {
     logger.warn(`Rejected connection from ${socket.handshake.address}: bad API key`);
@@ -59,6 +71,10 @@ io.on('connection', (socket) => {
   socket.on('subscribe', async (channels: string | string[]) => {
     const list = Array.isArray(channels) ? channels : [channels];
     for (const channel of list) {
+      if (!ALLOWED_SUBSCRIBE_CHANNELS.test(channel)) {
+        logger.warn(`Socket ${socket.id} attempted subscribe to disallowed channel: ${channel}`);
+        continue;
+      }
       if (socketHandlers.has(channel)) continue; // already subscribed
 
       const handler = (message: any) => {
