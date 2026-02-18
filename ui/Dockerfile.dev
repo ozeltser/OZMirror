@@ -2,6 +2,11 @@ FROM node:18-alpine AS development
 
 WORKDIR /app
 
+# VITE_* env vars are available at dev-server runtime via import.meta.env
+# Pass VITE_API_KEY from the host environment or docker-compose
+ARG VITE_API_KEY
+ENV VITE_API_KEY=${VITE_API_KEY}
+
 # Install dependencies
 COPY package*.json ./
 RUN npm install
