@@ -16,13 +16,9 @@ const ALLOWED_CORS_ORIGINS: string[] = (process.env.ALLOWED_CORS_ORIGINS || 'htt
   .map((o) => o.trim())
   .filter(Boolean);
 
-// Clients may only subscribe to module-owned channels.
-// System/internal channels must not be readable by browser clients.
-const ALLOWED_SUBSCRIBE_CHANNELS =
-  /^module:(clock|weather|calendar|rss|system_stats|now_playing|sticky_notes):.+$/;
-
-// Publish is restricted to the same set of module-owned channels.
-const ALLOWED_PUBLISH_CHANNELS =
+// Both subscribe and publish are restricted to module-owned channels.
+// System/internal channels must not be readable or writable by browser clients.
+const ALLOWED_MODULE_CHANNELS =
   /^module:(clock|weather|calendar|rss|system_stats|now_playing|sticky_notes):.+$/;
 
 // ── HTTP server ────────────────────────────────────────────────────────────
@@ -78,7 +74,7 @@ io.on('connection', (socket) => {
   socket.on('subscribe', async (channels: string | string[]) => {
     const list = Array.isArray(channels) ? channels : [channels];
     for (const channel of list) {
-      if (!ALLOWED_SUBSCRIBE_CHANNELS.test(channel)) {
+      if (!ALLOWED_MODULE_CHANNELS.test(channel)) {
         logger.warn(`Socket ${socket.id} attempted subscribe to disallowed channel: ${channel}`);
         continue;
       }
@@ -106,7 +102,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('publish', async ({ channel, payload }: { channel: string; payload: any }) => {
-    if (!ALLOWED_PUBLISH_CHANNELS.test(channel)) {
+    if (!ALLOWED_MODULE_CHANNELS.test(channel)) {
       logger.warn(`Socket ${socket.id} attempted publish to disallowed channel: ${channel}`);
       return;
     }
@@ -115,9 +111,11 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', async () => {
     logger.info(`Client disconnected: ${socket.id}`);
-    for (const [channel, handler] of socketHandlers) {
-      await redisBridge.unsubscribe(channel, handler);
-    }
+    await Promise.all(
+      Array.from(socketHandlers).map(([channel, handler]) =>
+        redisBridge.unsubscribe(channel, handler)
+      )
+    );
     socketHandlers.clear();
   });
 });
@@ -138,7 +136,20 @@ start().catch((err) => {
 // ── Graceful shutdown ──────────────────────────────────────────────────────
 async function shutdown() {
   logger.info('Shutting down...');
+
+  // Force exit after 10 s if connections don't drain in time.
+  const forceExit = setTimeout(() => {
+    logger.warn('Graceful shutdown timed out; forcing exit');
+    process.exit(1);
+  }, 10_000);
+  forceExit.unref();
+
+  // Disconnect Socket.io clients so httpServer.close() doesn't hang
+  // waiting for long-lived WebSocket connections to finish naturally.
+  io.disconnectSockets(true);
+
   httpServer.close(async () => {
+    clearTimeout(forceExit);
     await redisBridge.close();
     process.exit(0);
   });

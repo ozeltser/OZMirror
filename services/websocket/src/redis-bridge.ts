@@ -20,8 +20,12 @@ export class RedisBridge {
     // subscriber must be a separate connection (redis v4 pub/sub mode)
     this.subscriber = this.publisher.duplicate() as RedisClientType;
 
-    this.publisher.on('error', (err) => logger.error('Redis publisher error:', err));
-    this.subscriber.on('error', (err) => logger.error('Redis subscriber error:', err));
+    this.publisher.on('error', (err: Error) =>
+      logger.error(`Redis publisher error: ${err.stack ?? err.message}`)
+    );
+    this.subscriber.on('error', (err: Error) =>
+      logger.error(`Redis subscriber error: ${err.stack ?? err.message}`)
+    );
   }
 
   async connect(): Promise<void> {
