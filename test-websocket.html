@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>WebSocket Bridge Test</title>
+  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+  <style>
+    body { font-family: monospace; margin: 2rem; background: #1e1e1e; color: #d4d4d4; }
+    h1 { font-size: 1.2rem; }
+    label { display: block; margin-top: 0.75rem; }
+    input, button { font-family: inherit; font-size: 0.9rem; padding: 0.3rem 0.5rem; }
+    input { background: #2d2d2d; color: #d4d4d4; border: 1px solid #555; width: 320px; }
+    button { cursor: pointer; background: #264f78; color: #fff; border: none; margin-top: 0.5rem; }
+    button:disabled { opacity: 0.4; cursor: default; }
+    #log { margin-top: 1rem; max-height: 60vh; overflow-y: auto; font-size: 0.85rem; line-height: 1.5; }
+    .msg-in  { color: #6a9955; }
+    .msg-out { color: #569cd6; }
+    .msg-err { color: #f44747; }
+    .msg-sys { color: #dcdcaa; }
+  </style>
+</head>
+<body>
+  <h1>OZMirror — WebSocket Bridge Test</h1>
+
+  <label>Bridge URL
+    <input id="url" value="http://localhost/ws">
+  </label>
+  <label>API Key
+    <input id="apiKey" type="password" placeholder="paste API_KEY here">
+  </label>
+  <button id="btnConnect" onclick="toggleConnection()">Connect</button>
+
+  <hr>
+
+  <label>Channel (e.g. <code>module:clock:time</code>)
+    <input id="channel" value="module:clock:time">
+  </label>
+  <button onclick="subscribe()">Subscribe</button>
+  <button onclick="unsubscribe()">Unsubscribe</button>
+  <button onclick="publish()">Publish test message</button>
+
+  <div id="log"></div>
+
+  <script>
+    let socket = null;
+
+    function log(text, cls) {
+      const el = document.getElementById('log');
+      const line = document.createElement('div');
+      line.className = cls || '';
+      line.textContent = new Date().toISOString() + '  ' + text;
+      el.prepend(line);
+    }
+
+    function toggleConnection() {
+      if (socket && socket.connected) {
+        socket.disconnect();
+        return;
+      }
+      const url = document.getElementById('url').value.trim();
+      const apiKey = document.getElementById('apiKey').value.trim();
+
+      log('Connecting to ' + url + ' …', 'msg-sys');
+
+      socket = io(url, {
+        transports: ['websocket'],
+        auth: { apiKey: apiKey }
+      });
+
+      socket.on('connect', () => {
+        log('Connected — id=' + socket.id, 'msg-sys');
+        document.getElementById('btnConnect').textContent = 'Disconnect';
+      });
+
+      socket.on('disconnect', (reason) => {
+        log('Disconnected: ' + reason, 'msg-sys');
+        document.getElementById('btnConnect').textContent = 'Connect';
+      });
+
+      socket.on('connect_error', (err) => {
+        log('Connection error: ' + err.message, 'msg-err');
+      });
+
+      socket.on('message', (msg) => {
+        log('[' + msg.channel + '] ' + JSON.stringify(msg.payload), 'msg-in');
+      });
+    }
+
+    function subscribe() {
+      if (!socket || !socket.connected) { log('Not connected', 'msg-err'); return; }
+      const ch = document.getElementById('channel').value.trim();
+      socket.emit('subscribe', [ch]);
+      log('Subscribed to ' + ch, 'msg-out');
+    }
+
+    function unsubscribe() {
+      if (!socket || !socket.connected) { log('Not connected', 'msg-err'); return; }
+      const ch = document.getElementById('channel').value.trim();
+      socket.emit('unsubscribe', [ch]);
+      log('Unsubscribed from ' + ch, 'msg-out');
+    }
+
+    function publish() {
+      if (!socket || !socket.connected) { log('Not connected', 'msg-err'); return; }
+      const ch = document.getElementById('channel').value.trim();
+      const payload = { test: true, ts: Date.now() };
+      socket.emit('publish', { channel: ch, payload: payload });
+      log('Published to ' + ch + ': ' + JSON.stringify(payload), 'msg-out');
+    }
+  </script>
+</body>
+</html>
