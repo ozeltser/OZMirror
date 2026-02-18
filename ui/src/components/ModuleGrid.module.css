@@ -1,0 +1,53 @@
+.grid {
+  min-height: 100vh;
+}
+
+.editMode .moduleContainer {
+  border: 1px dashed rgba(255, 255, 255, 0.3);
+}
+
+.moduleContainer {
+  position: relative;
+  background: var(--color-surface, rgba(255, 255, 255, 0.05));
+  border-radius: 8px;
+  overflow: hidden;
+  backdrop-filter: blur(4px);
+  border: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.editOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.moduleLabel {
+  font-size: 0.7rem;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.dragHint {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.unknownWidget {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.75rem;
+}

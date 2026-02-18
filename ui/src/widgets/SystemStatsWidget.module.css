@@ -1,0 +1,87 @@
+.widget {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  height: 100%;
+  color: var(--color-text, #ffffff);
+  overflow: hidden;
+}
+
+.title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.6;
+  margin-bottom: 0.75rem;
+}
+
+.stats {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.statRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.statHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.statLabel {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.statValue {
+  font-size: 0.75rem;
+  opacity: 0.7;
+  font-family: var(--font-mono, monospace);
+}
+
+.barTrack {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease-out;
+}
+
+.normal {
+  background: #4ade80;
+}
+
+.warning {
+  background: #facc15;
+}
+
+.critical {
+  background: #f87171;
+}
+
+.uptime {
+  font-size: 0.7rem;
+  opacity: 0.5;
+  margin-top: 0.5rem;
+  font-family: var(--font-mono, monospace);
+}
+
+.loading {
+  opacity: 0.4;
+  font-size: 0.875rem;
+  text-align: center;
+  margin: auto;
+}
