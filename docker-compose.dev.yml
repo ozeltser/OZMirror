@@ -47,3 +47,17 @@ services:
     environment:
       - LOG_LEVEL=debug
       - NODE_ENV=development
+
+  system_stats-module:
+    volumes:
+      - ./modules/system_stats/src:/app/src
+    environment:
+      - LOG_LEVEL=debug
+      - NODE_ENV=development
+
+  sticky_notes-module:
+    volumes:
+      - ./modules/sticky_notes/src:/app/src
+    environment:
+      - LOG_LEVEL=debug
+      - NODE_ENV=development

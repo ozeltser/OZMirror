@@ -11,6 +11,8 @@ import type { ModuleInstanceConfig } from '../../types';
 // Lazy-load widget components by moduleId
 const WIDGET_MAP: Record<string, React.LazyExoticComponent<React.ComponentType<WidgetProps>>> = {
   clock: lazy(() => import('../../widgets/ClockWidget')),
+  system_stats: lazy(() => import('../../widgets/SystemStatsWidget')),
+  sticky_notes: lazy(() => import('../../widgets/StickyNotesWidget')),
 };
 
 interface WidgetProps {
