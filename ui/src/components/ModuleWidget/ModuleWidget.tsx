@@ -49,6 +49,7 @@ const ModuleWidget: React.FC<ModuleWidgetProps> = ({
 
       {isEditMode && (
         <>
+          <div className={`${styles.dragHandle} drag-handle`} title="Drag to reposition" />
           <div className={styles.editOverlay}>
             {onRemove && (
               <button className={styles.editBtn} onClick={() => onRemove(instanceId)} title="Remove">
