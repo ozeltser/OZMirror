@@ -39,7 +39,7 @@ router.get('/manifest', (_req: Request, res: Response) => {
 // GET /data?instanceId=<id>
 // ---------------------------------------------------------------------------
 router.get('/data', async (req: Request, res: Response) => {
-  const instanceId = (req.query.instanceId as string) ?? 'clock_01';
+  const instanceId = typeof req.query.instanceId === 'string' ? req.query.instanceId : 'clock_01';
 
   let config: ClockConfig;
   try {
@@ -59,14 +59,15 @@ router.get('/data', async (req: Request, res: Response) => {
 // POST /action
 // ---------------------------------------------------------------------------
 router.post('/action', async (req: Request, res: Response) => {
-  const { instanceId, action, payload } = req.body as {
-    instanceId: string;
-    action: string;
-    payload: Record<string, unknown>;
-  };
+  const { instanceId, action } = req.body ?? {};
+
+  if (typeof action !== 'string') {
+    return res.status(400).json({ success: false, error: 'Missing or invalid "action" field' });
+  }
 
   if (action === 'getTime') {
-    const config = await fetchInstanceConfig(instanceId ?? 'clock_01').catch(() => DEFAULT_CONFIG);
+    const id = typeof instanceId === 'string' ? instanceId : 'clock_01';
+    const config = await fetchInstanceConfig(id).catch(() => DEFAULT_CONFIG);
     const data = buildTimeData(config.format, config.timezone);
     return res.json({ success: true, data });
   }

@@ -49,13 +49,21 @@ const server = app.listen(PORT, HOST, async () => {
 // Graceful shutdown
 async function shutdown(signal: string): Promise<void> {
   console.log(`[server] ${signal} received — shutting down`);
-  server.close(async () => {
-    await disconnectRedis();
-    process.exit(0);
-  });
 
   // Force exit if graceful shutdown takes too long
-  setTimeout(() => process.exit(1), 10_000);
+  const forceTimer = setTimeout(() => process.exit(1), 10_000);
+
+  server.close(async () => {
+    try {
+      await disconnectRedis();
+    } catch (err) {
+      console.error('[server] Error during Redis disconnect:', err);
+      clearTimeout(forceTimer);
+      process.exit(1);
+    }
+    clearTimeout(forceTimer);
+    process.exit(0);
+  });
 }
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
