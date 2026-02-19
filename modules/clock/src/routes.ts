@@ -11,6 +11,7 @@ import { Router, Request, Response } from 'express';
 import { buildTimeData } from './time-formatter';
 import { fetchInstanceConfig, DEFAULT_CONFIG, ClockConfig } from './config-client';
 import { setActiveConfig } from './redis-client';
+import { MANIFEST } from './manifest';
 
 const router = Router();
 
@@ -31,25 +32,7 @@ router.get('/health', (_req: Request, res: Response) => {
 // GET /manifest
 // ---------------------------------------------------------------------------
 router.get('/manifest', (_req: Request, res: Response) => {
-  res.json({
-    id: process.env.MODULE_ID ?? 'clock',
-    name: 'Clock',
-    description: 'Digital clock with configurable format and timezone support',
-    version: '1.0.0',
-    author: 'OzMirror',
-    icon: 'clock',
-    defaultConfig: DEFAULT_CONFIG,
-    configSchema: {
-      type: 'object',
-      properties: {
-        format: { type: 'string', default: 'HH:mm:ss' },
-        timezone: { type: 'string', default: 'UTC' },
-        showDate: { type: 'boolean', default: true },
-      },
-      required: ['format', 'timezone', 'showDate'],
-    },
-    gridConstraints: { minW: 2, minH: 2, maxW: 8, maxH: 4, defaultW: 4, defaultH: 3 },
-  });
+  res.json(MANIFEST);
 });
 
 // ---------------------------------------------------------------------------

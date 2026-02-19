@@ -8,8 +8,12 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     proxy: {
-      '/api': {
+      '/api/config': {
         target: 'http://config-service:8000',
+        changeOrigin: true,
+      },
+      '/api/modules': {
+        target: 'http://gateway:80',
         changeOrigin: true,
       },
       '/ws': {

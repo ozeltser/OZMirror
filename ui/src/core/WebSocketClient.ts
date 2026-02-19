@@ -1,28 +1,34 @@
 /**
  * WebSocket client — bridges Socket.IO to the Redis pub/sub bridge service.
- * Supports multiple channel subscriptions with per-channel callbacks.
+ * Supports multiple channel subscriptions with per-channel callbacks and
+ * an event-emitter pattern for connection status changes.
+ *
+ * The Nginx gateway injects the X-API-Key header server-side, so the
+ * browser connects without passing any credentials.
  */
 
 import { io, Socket } from 'socket.io-client';
 import type { WsMessage } from '../types';
 
 type MessageHandler = (payload: unknown) => void;
+type StatusHandler = (connected: boolean) => void;
 
 class WebSocketClient {
   private socket: Socket | null = null;
   private handlers: Map<string, Set<MessageHandler>> = new Map();
+  private statusHandlers: Set<StatusHandler> = new Set();
   private connected = false;
 
-  connect(apiKey: string): void {
+  connect(): void {
     if (this.socket) return;
 
+    // No auth needed — the Nginx gateway injects X-API-Key on the proxy.
     this.socket = io('/ws', {
       transports: ['websocket', 'polling'],
-      auth: { apiKey },
     });
 
     this.socket.on('connect', () => {
-      this.connected = true;
+      this.setConnected(true);
       console.log('[ws] Connected:', this.socket!.id);
 
       // Re-subscribe to all channels after reconnect
@@ -33,7 +39,7 @@ class WebSocketClient {
     });
 
     this.socket.on('disconnect', () => {
-      this.connected = false;
+      this.setConnected(false);
       console.log('[ws] Disconnected');
     });
 
@@ -48,6 +54,19 @@ class WebSocketClient {
     this.socket.on('connect_error', (err) => {
       console.warn('[ws] Connection error:', err.message);
     });
+  }
+
+  /**
+   * Subscribe to connection status changes.
+   * Returns an unsubscribe function.
+   */
+  onStatusChange(handler: StatusHandler): () => void {
+    this.statusHandlers.add(handler);
+    // Immediately emit current status
+    handler(this.connected);
+    return () => {
+      this.statusHandlers.delete(handler);
+    };
   }
 
   subscribe(channel: string, handler: MessageHandler): () => void {
@@ -86,12 +105,17 @@ class WebSocketClient {
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
-      this.connected = false;
+      this.setConnected(false);
     }
   }
 
   isConnected(): boolean {
     return this.connected;
+  }
+
+  private setConnected(value: boolean): void {
+    this.connected = value;
+    this.statusHandlers.forEach((h) => h(value));
   }
 }
 

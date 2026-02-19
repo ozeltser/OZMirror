@@ -13,8 +13,6 @@ import { wsClient } from './core/WebSocketClient';
 import { inputHandler } from './core/InputHandler';
 import type { GridItem } from './types';
 
-const API_KEY = import.meta.env.VITE_API_KEY ?? '';
-
 function applyTheme(variables: Record<string, string>): void {
   const root = document.documentElement;
   for (const [key, value] of Object.entries(variables)) {
@@ -37,17 +35,15 @@ const App: React.FC = () => {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  // WebSocket connection
+  // WebSocket connection — the Nginx gateway injects the API key server-side,
+  // so the browser connects without credentials.
   useEffect(() => {
-    wsClient.connect(API_KEY);
+    wsClient.connect();
 
-    // Monitor connection state via subscribe to a dummy channel
-    const check = setInterval(() => {
-      setWsConnected(wsClient.isConnected());
-    }, 2000);
+    const unsubStatus = wsClient.onStatusChange(setWsConnected);
 
     return () => {
-      clearInterval(check);
+      unsubStatus();
       wsClient.disconnect();
     };
   }, [setWsConnected]);

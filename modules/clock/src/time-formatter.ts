@@ -38,11 +38,11 @@ export function formatTime(date: Date, format: string, timezone: string): string
   const ampm = hourInt < 12 ? 'AM' : 'PM';
 
   return format
-    .replace('HH', hour24)
-    .replace('hh', hour12)
-    .replace('mm', minute)
-    .replace('ss', second)
-    .replace('A', ampm);
+    .replaceAll('HH', hour24)
+    .replaceAll('hh', hour12)
+    .replaceAll('mm', minute)
+    .replaceAll('ss', second)
+    .replaceAll('A', ampm);
 }
 
 /**

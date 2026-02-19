@@ -5,6 +5,7 @@
  */
 
 import axios from 'axios';
+import { MANIFEST } from './manifest';
 
 const CONFIG_SERVICE_URL = process.env.CONFIG_SERVICE_URL ?? 'http://config-service:8000';
 const API_KEY = process.env.API_KEY ?? '';
@@ -20,33 +21,6 @@ export const DEFAULT_CONFIG: ClockConfig = {
   format: 'HH:mm:ss',
   timezone: 'UTC',
   showDate: true,
-};
-
-const MANIFEST = {
-  id: MODULE_ID,
-  name: 'Clock',
-  description: 'Digital clock with configurable format and timezone support',
-  version: '1.0.0',
-  author: 'OzMirror',
-  icon: 'clock',
-  defaultConfig: DEFAULT_CONFIG,
-  configSchema: {
-    type: 'object',
-    properties: {
-      format: { type: 'string', description: 'Time format string (HH:mm:ss, HH:mm, hh:mm A)', default: 'HH:mm:ss' },
-      timezone: { type: 'string', description: 'IANA timezone name', default: 'UTC' },
-      showDate: { type: 'boolean', description: 'Show date below time', default: true },
-    },
-    required: ['format', 'timezone', 'showDate'],
-  },
-  gridConstraints: {
-    minW: 2,
-    minH: 2,
-    maxW: 8,
-    maxH: 4,
-    defaultW: 4,
-    defaultH: 3,
-  },
 };
 
 /**
@@ -81,14 +55,21 @@ export async function registerModule(serviceUrl: string): Promise<void> {
   console.error('[config-client] Module registration failed after 5 attempts:', lastError);
 }
 
+// Instance IDs must be alphanumeric with hyphens/underscores only — prevents path traversal.
+const INSTANCE_ID_PATTERN = /^[a-zA-Z0-9_-]+$/;
+
 /**
  * Fetch the config for a specific module instance.
- * Falls back to DEFAULT_CONFIG if the service is unreachable.
+ * Falls back to DEFAULT_CONFIG if the service is unreachable or instanceId is invalid.
  */
 export async function fetchInstanceConfig(instanceId: string): Promise<ClockConfig> {
+  if (!INSTANCE_ID_PATTERN.test(instanceId)) {
+    console.warn(`[config-client] Invalid instanceId rejected: ${instanceId}`);
+    return DEFAULT_CONFIG;
+  }
   try {
     const { data } = await axios.get<ClockConfig>(
-      `${CONFIG_SERVICE_URL}/api/config/modules/${MODULE_ID}/config/${instanceId}`,
+      `${CONFIG_SERVICE_URL}/api/config/modules/${encodeURIComponent(MODULE_ID)}/config/${encodeURIComponent(instanceId)}`,
       { timeout: 3000 }
     );
     return { ...DEFAULT_CONFIG, ...data };

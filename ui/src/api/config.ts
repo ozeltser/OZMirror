@@ -1,24 +1,14 @@
 /**
  * Axios client for the OzMirror Configuration Service.
- * All write operations include the API key header.
+ * The Nginx gateway injects X-API-Key server-side so no client-side secret is needed.
  */
 
 import axios from 'axios';
 import type { LayoutData, GlobalSettings, RegisteredModule, Theme } from '../types';
 
 const BASE_URL = '/api/config';
-const API_KEY = import.meta.env.VITE_API_KEY ?? '';
 
 const client = axios.create({ baseURL: BASE_URL });
-
-// Attach API key to mutating requests
-client.interceptors.request.use((config) => {
-  const method = (config.method ?? '').toUpperCase();
-  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method) && API_KEY) {
-    config.headers['X-API-Key'] = API_KEY;
-  }
-  return config;
-});
 
 // ---------------------------------------------------------------------------
 // Layout

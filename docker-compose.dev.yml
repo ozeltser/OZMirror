@@ -14,14 +14,11 @@ services:
       context: ./ui
       dockerfile: Dockerfile.dev
       target: development
-      args:
-        - VITE_API_KEY=${API_KEY}
     volumes:
       - ./ui/src:/app/src
       - ./ui/public:/app/public
     environment:
       - NODE_ENV=development
-      - VITE_API_KEY=${API_KEY}
     ports:
       - "5173:5173"  # Vite dev server
     command: npm run dev

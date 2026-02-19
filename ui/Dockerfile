@@ -3,10 +3,6 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Build-time env vars (Vite embeds these at build time)
-ARG VITE_API_KEY
-ENV VITE_API_KEY=${VITE_API_KEY}
-
 # Copy package files
 COPY package*.json ./
 
