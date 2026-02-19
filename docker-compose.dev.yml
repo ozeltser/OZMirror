@@ -5,8 +5,9 @@ version: '3.8'
 services:
   gateway:
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf  # Writable for dev config changes
-      - ./nginx/ssl:/etc/nginx/ssl  # Writable for dev
+      # Use the HTTP-only dev config — no SSL certs required in development
+      - ./nginx/nginx.dev.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
 
   ui:
     build:

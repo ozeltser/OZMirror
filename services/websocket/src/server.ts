@@ -49,7 +49,13 @@ if (!API_KEY) {
 }
 
 io.use((socket, next) => {
-  const provided = socket.handshake.auth?.apiKey;
+  // Accept the API key from either:
+  //   1. Socket.IO auth object  (direct / dev connections)
+  //   2. HTTP header X-API-Key  (injected by the Nginx gateway)
+  // This keeps the API key server-side; the browser never receives it.
+  const provided =
+    socket.handshake.auth?.apiKey ??
+    socket.handshake.headers['x-api-key'];
   let valid = false;
   if (typeof provided === 'string') {
     const a = Buffer.from(provided);

@@ -12,8 +12,9 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    environment:
+      - API_KEY=${API_KEY}
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
     depends_on:
       ui:
@@ -131,6 +132,12 @@ services:
         condition: service_healthy
     networks:
       - ozmirror-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
     restart: unless-stopped
 
   # =====================================
