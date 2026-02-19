@@ -10,7 +10,7 @@
 import { Router, Request, Response } from 'express';
 import { buildTimeData } from './time-formatter';
 import { fetchInstanceConfig, DEFAULT_CONFIG, ClockConfig } from './config-client';
-import { setActiveConfig } from './redis-client';
+import { setInstanceConfig } from './redis-client';
 import { MANIFEST } from './manifest';
 
 const router = Router();
@@ -48,8 +48,8 @@ router.get('/data', async (req: Request, res: Response) => {
     config = DEFAULT_CONFIG;
   }
 
-  // Keep the in-memory config in sync for the Redis publisher.
-  setActiveConfig(config);
+  // Keep the per-instance config map in sync for the Redis publisher.
+  setInstanceConfig(instanceId, config);
 
   const data = buildTimeData(config.format, config.timezone);
   res.json(data);

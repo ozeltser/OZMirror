@@ -6,7 +6,7 @@
 
 import { createClient, RedisClientType } from 'redis';
 import { buildTimeData } from './time-formatter';
-import { ClockConfig, DEFAULT_CONFIG } from './config-client';
+import { ClockConfig } from './config-client';
 
 const REDIS_URL = process.env.REDIS_URL ?? 'redis://redis:6379';
 const REDIS_PASSWORD = process.env.REDIS_PASSWORD ?? '';
@@ -16,11 +16,12 @@ const CHANNEL = 'module:clock:time';
 let publisher: RedisClientType | null = null;
 let intervalHandle: ReturnType<typeof setInterval> | null = null;
 
-// Mutable reference to the active config — updated externally.
-let activeConfig: ClockConfig = { ...DEFAULT_CONFIG };
+// Per-instance config map — avoids singleton mutation race conditions when
+// multiple clock widget instances are active concurrently.
+const instanceConfigs = new Map<string, ClockConfig>();
 
-export function setActiveConfig(config: ClockConfig): void {
-  activeConfig = config;
+export function setInstanceConfig(instanceId: string, config: ClockConfig): void {
+  instanceConfigs.set(instanceId, config);
 }
 
 export async function connectRedis(): Promise<void> {
@@ -35,19 +36,23 @@ export async function connectRedis(): Promise<void> {
   console.log('[redis-client] Connected to Redis');
 }
 
-export function startPublishing(instanceId = 'clock_01'): void {
+export function startPublishing(): void {
   if (!publisher) {
     console.error('[redis-client] Not connected — cannot publish');
     return;
   }
 
   intervalHandle = setInterval(async () => {
-    const data = buildTimeData(activeConfig.format, activeConfig.timezone);
-    const payload = JSON.stringify({ instanceId, data, timestamp: data.timestamp });
-    try {
-      await publisher!.publish(CHANNEL, payload);
-    } catch (err) {
-      console.error('[redis-client] Publish error:', err);
+    if (instanceConfigs.size === 0) return;
+
+    for (const [instanceId, config] of instanceConfigs) {
+      const data = buildTimeData(config.format, config.timezone);
+      const payload = JSON.stringify({ instanceId, data, timestamp: data.timestamp });
+      try {
+        await publisher!.publish(CHANNEL, payload);
+      } catch (err) {
+        console.error('[redis-client] Publish error:', err);
+      }
     }
   }, 1000);
 

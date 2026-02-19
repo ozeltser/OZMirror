@@ -33,7 +33,7 @@ const server = app.listen(PORT, HOST, async () => {
   // Connect to Redis
   try {
     await connectRedis();
-    startPublishing('clock_01');
+    startPublishing();
   } catch (err) {
     console.error('[server] Failed to connect to Redis:', err);
     // Non-fatal — REST API still works without Redis

@@ -1,5 +1,8 @@
 FROM nginx:alpine
 
+# envsubst is part of gettext; not included in nginx:alpine by default
+RUN apk add --no-cache gettext
+
 # Copy nginx config template (uses $API_KEY placeholder)
 COPY nginx.conf /etc/nginx/templates/nginx.conf.template
 
