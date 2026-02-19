@@ -67,22 +67,25 @@ export function getNoteById(id: number): Note | undefined {
 
 export function createNote(input: CreateNoteInput): Note {
   const database = getDb();
-  const result = database
+  return database
     .prepare(
       `INSERT INTO notes (instance_id, content, color, font_size)
-       VALUES (?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?)
+       RETURNING *`
     )
-    .run(
+    .get(
       input.instance_id,
       input.content ?? '',
       input.color ?? '#ffeb3b',
       input.font_size ?? 16
-    );
-
-  return getNoteById(result.lastInsertRowid as number)!;
+    ) as Note;
 }
 
-export function updateNote(id: number, input: UpdateNoteInput): Note | undefined {
+export function updateNote(
+  id: number,
+  instanceId: string,
+  input: UpdateNoteInput
+): Note | undefined {
   const database = getDb();
 
   const fields: string[] = [];
@@ -106,16 +109,20 @@ export function updateNote(id: number, input: UpdateNoteInput): Note | undefined
   }
 
   fields.push('updated_at = CURRENT_TIMESTAMP');
-  values.push(id);
+  values.push(id, instanceId);
 
-  database.prepare(`UPDATE notes SET ${fields.join(', ')} WHERE id = ?`).run(...values);
-
-  return getNoteById(id);
+  // Ownership check: WHERE id = ? AND instance_id = ?
+  return database
+    .prepare(`UPDATE notes SET ${fields.join(', ')} WHERE id = ? AND instance_id = ? RETURNING *`)
+    .get(...values) as Note | undefined;
 }
 
-export function deleteNote(id: number): boolean {
+export function deleteNote(id: number, instanceId: string): boolean {
   const database = getDb();
-  const result = database.prepare('DELETE FROM notes WHERE id = ?').run(id);
+  // Ownership check: WHERE id = ? AND instance_id = ?
+  const result = database
+    .prepare('DELETE FROM notes WHERE id = ? AND instance_id = ?')
+    .run(id, instanceId);
   return result.changes > 0;
 }
 

@@ -1,6 +1,7 @@
 import express from 'express';
 import { connectRedis, publishTimeUpdate, closeRedis } from './redis-client';
 import { getTimeData } from './time-formatter';
+import { logger } from './logger';
 import routes from './routes';
 
 const PORT = parseInt(process.env.PORT || '3001', 10);
@@ -23,12 +24,12 @@ async function start() {
   }, 1000);
 
   app.listen(PORT, () => {
-    console.log(`Clock module listening on port ${PORT}`);
+    logger.info(`Clock module listening on port ${PORT}`);
   });
 }
 
 async function shutdown() {
-  console.log('Shutting down clock module...');
+  logger.info('Shutting down clock module...');
   if (publishInterval) {
     clearInterval(publishInterval);
   }
@@ -40,6 +41,6 @@ process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 
 start().catch((err) => {
-  console.error('Failed to start clock module:', err);
+  logger.error('Failed to start clock module', err);
   process.exit(1);
 });

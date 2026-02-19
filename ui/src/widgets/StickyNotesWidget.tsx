@@ -25,8 +25,8 @@ const COLOR_PALETTE = [
 
 interface NoteCardProps {
   note: Note;
-  onUpdate: (id: number, data: Partial<Note>) => Promise<void>;
-  onDelete: (id: number) => Promise<void>;
+  onUpdate: (id: number, data: Partial<Note>) => void;
+  onDelete: (id: number) => void;
 }
 
 function NoteCard({ note, onUpdate, onDelete }: NoteCardProps) {
@@ -44,10 +44,10 @@ function NoteCard({ note, onUpdate, onDelete }: NoteCardProps) {
     }
   }, [editing]);
 
-  const saveContent = async () => {
+  const saveContent = () => {
     setEditing(false);
     if (content !== note.content) {
-      await onUpdate(note.id, { content });
+      onUpdate(note.id, { content });
     }
   };
 
@@ -139,11 +139,16 @@ export default function StickyNotesWidget({
       .finally(() => setLoading(false));
   }, [instanceId]);
 
-  // Real-time updates via WebSocket
+  // Single source of truth: WebSocket events drive all state changes.
+  // API handlers only fire the request; the resulting WebSocket event updates state.
   useWebSocketChannel(`module:sticky_notes:created`, (payload) => {
     const event = payload as { instanceId: string; data: Note };
     if (event.instanceId === instanceId) {
-      setNotes((prev) => [event.data, ...prev]);
+      setNotes((prev) => {
+        // Deduplicate: the note may already be present if this client initiated the create
+        if (prev.some((n) => n.id === event.data.id)) return prev;
+        return [event.data, ...prev];
+      });
     }
   });
 
@@ -161,23 +166,23 @@ export default function StickyNotesWidget({
     }
   });
 
-  const handleCreate = async () => {
-    const note = await createNote(instanceId, {
+  // Fire-and-forget: WebSocket events will update state.
+  const handleCreate = () => {
+    createNote(instanceId, {
       content: '',
       color: defaultColor,
       font_size: defaultFontSize,
-    });
-    setNotes((prev) => [note, ...prev]);
+    }).catch(console.error);
   };
 
-  const handleUpdate = async (id: number, data: Partial<Note>) => {
-    const updated = await updateNote(id, data);
-    setNotes((prev) => prev.map((n) => (n.id === id ? updated : n)));
+  const handleUpdate = (id: number, data: Partial<Note>) => {
+    updateNote(id, { ...data, instance_id: instanceId } as Record<string, unknown>).catch(
+      console.error
+    );
   };
 
-  const handleDelete = async (id: number) => {
-    await deleteNote(id);
-    setNotes((prev) => prev.filter((n) => n.id !== id));
+  const handleDelete = (id: number) => {
+    deleteNote(id, instanceId).catch(console.error);
   };
 
   if (loading) {

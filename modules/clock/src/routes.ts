@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { getTimeData } from './time-formatter';
+import { requireApiKey } from './auth';
 
 const router = Router();
 
@@ -31,9 +32,14 @@ router.get('/manifest', (_req: Request, res: Response) => {
   res.json(manifest);
 });
 
-router.get('/data', (req: Request, res: Response) => {
-  const format = (req.query.format as string) || 'HH:mm:ss';
-  const timezone = (req.query.timezone as string) || 'UTC';
+function asString(value: unknown, fallback: string): string {
+  if (typeof value === 'string' && value.length > 0) return value;
+  return fallback;
+}
+
+router.get('/data', requireApiKey, (req: Request, res: Response) => {
+  const format = asString(req.query.format, 'HH:mm:ss');
+  const timezone = asString(req.query.timezone, 'UTC');
   const data = getTimeData(format, timezone);
   res.json(data);
 });

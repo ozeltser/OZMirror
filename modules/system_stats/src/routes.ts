@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { collectStats } from './stats-collector';
+import { requireApiKey } from './auth';
 
 const router = Router();
 
@@ -32,7 +33,7 @@ router.get('/manifest', (_req: Request, res: Response) => {
   res.json(manifest);
 });
 
-router.get('/data', (_req: Request, res: Response) => {
+router.get('/data', requireApiKey, (_req: Request, res: Response) => {
   const stats = collectStats();
   res.json(stats);
 });

@@ -7,6 +7,7 @@ import {
   deleteNote,
 } from './database';
 import { publishNoteEvent } from './redis-client';
+import { requireApiKey } from './auth';
 
 const router = Router();
 
@@ -37,9 +38,13 @@ router.get('/manifest', (_req: Request, res: Response) => {
   res.json(manifest);
 });
 
+function asString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
 // GET /notes?instanceId=sticky_01
-router.get('/notes', (req: Request, res: Response) => {
-  const instanceId = req.query.instanceId as string;
+router.get('/notes', requireApiKey, (req: Request, res: Response) => {
+  const instanceId = asString(req.query.instanceId);
   if (!instanceId) {
     res.status(400).json({ error: 'instanceId query parameter required' });
     return;
@@ -49,7 +54,7 @@ router.get('/notes', (req: Request, res: Response) => {
 });
 
 // GET /notes/:id
-router.get('/notes/:id', (req: Request, res: Response) => {
+router.get('/notes/:id', requireApiKey, (req: Request, res: Response) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) {
     res.status(400).json({ error: 'Invalid note ID' });
@@ -64,7 +69,7 @@ router.get('/notes/:id', (req: Request, res: Response) => {
 });
 
 // POST /notes
-router.post('/notes', async (req: Request, res: Response) => {
+router.post('/notes', requireApiKey, async (req: Request, res: Response) => {
   const { instance_id, content, color, font_size } = req.body as {
     instance_id?: string;
     content?: string;
@@ -83,51 +88,57 @@ router.post('/notes', async (req: Request, res: Response) => {
 });
 
 // PUT /notes/:id
-router.put('/notes/:id', async (req: Request, res: Response) => {
+// Requires instance_id in body to verify ownership (prevents IDOR).
+router.put('/notes/:id', requireApiKey, async (req: Request, res: Response) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) {
     res.status(400).json({ error: 'Invalid note ID' });
     return;
   }
 
-  const existing = getNoteById(id);
-  if (!existing) {
-    res.status(404).json({ error: 'Note not found' });
-    return;
-  }
-
-  const { content, color, font_size } = req.body as {
+  const { instance_id, content, color, font_size } = req.body as {
+    instance_id?: string;
     content?: string;
     color?: string;
     font_size?: number;
   };
 
-  const updated = updateNote(id, { content, color, font_size });
-  if (updated) {
-    await publishNoteEvent('updated', existing.instance_id, updated);
+  if (!instance_id) {
+    res.status(400).json({ error: 'instance_id is required for ownership verification' });
+    return;
   }
+
+  const updated = updateNote(id, instance_id, { content, color, font_size });
+  if (!updated) {
+    res.status(404).json({ error: 'Note not found or not owned by this instance' });
+    return;
+  }
+  await publishNoteEvent('updated', instance_id, updated);
   res.json(updated);
 });
 
 // DELETE /notes/:id
-router.delete('/notes/:id', async (req: Request, res: Response) => {
+// Requires instance_id in body to verify ownership (prevents IDOR).
+router.delete('/notes/:id', requireApiKey, async (req: Request, res: Response) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) {
     res.status(400).json({ error: 'Invalid note ID' });
     return;
   }
 
-  const existing = getNoteById(id);
-  if (!existing) {
-    res.status(404).json({ error: 'Note not found' });
+  const { instance_id } = req.body as { instance_id?: string };
+  if (!instance_id) {
+    res.status(400).json({ error: 'instance_id is required for ownership verification' });
     return;
   }
 
-  const deleted = deleteNote(id);
-  if (deleted) {
-    await publishNoteEvent('deleted', existing.instance_id, { id });
+  const deleted = deleteNote(id, instance_id);
+  if (!deleted) {
+    res.status(404).json({ error: 'Note not found or not owned by this instance' });
+    return;
   }
-  res.json({ success: deleted, id });
+  await publishNoteEvent('deleted', instance_id, { id });
+  res.json({ success: true, id });
 });
 
 export default router;

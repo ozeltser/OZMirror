@@ -1,4 +1,5 @@
 import { createClient, RedisClientType } from 'redis';
+import { logger } from './logger';
 
 const CHANNEL = 'module:clock:time';
 
@@ -13,10 +14,10 @@ export async function connectRedis(): Promise<void> {
     password: password || undefined,
   }) as RedisClientType;
 
-  client.on('error', (err) => console.error('Redis client error:', err));
+  client.on('error', (err) => logger.error('Redis client error', err));
 
   await client.connect();
-  console.log('Connected to Redis');
+  logger.info('Connected to Redis');
 }
 
 export async function publishTimeUpdate(data: object): Promise<void> {

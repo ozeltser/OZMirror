@@ -178,6 +178,7 @@ services:
       - MODULE_ID=system_stats
       - REDIS_URL=${REDIS_URL}
       - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - API_KEY=${API_KEY}
       - PORT=3002
       - STATS_INTERVAL_MS=5000
     depends_on:
@@ -205,6 +206,7 @@ services:
       - MODULE_ID=sticky_notes
       - REDIS_URL=${REDIS_URL}
       - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - API_KEY=${API_KEY}
       - PORT=3003
       - DATA_DIR=/app/data
     volumes:

@@ -1,6 +1,7 @@
 import express from 'express';
 import { connectRedis, publishStats, closeRedis } from './redis-client';
 import { collectStats } from './stats-collector';
+import { logger } from './logger';
 import routes from './routes';
 
 const PORT = parseInt(process.env.PORT || '3002', 10);
@@ -22,12 +23,12 @@ async function start() {
   }, PUBLISH_INTERVAL_MS);
 
   app.listen(PORT, () => {
-    console.log(`System Stats module listening on port ${PORT}`);
+    logger.info(`System Stats module listening on port ${PORT}`);
   });
 }
 
 async function shutdown() {
-  console.log('Shutting down system stats module...');
+  logger.info('Shutting down system stats module...');
   if (publishInterval) {
     clearInterval(publishInterval);
   }
@@ -39,6 +40,6 @@ process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 
 start().catch((err) => {
-  console.error('Failed to start system stats module:', err);
+  logger.error('Failed to start system stats module', err);
   process.exit(1);
 });
