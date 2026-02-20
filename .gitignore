@@ -41,6 +41,7 @@ modules/*/data/*.sqlite
 # SSL certificates (if self-generated)
 nginx/ssl/*.key
 nginx/ssl/*.crt
+nginx/ssl/*.pem
 
 # Temporary files
 *.tmp

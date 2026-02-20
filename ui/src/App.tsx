@@ -6,6 +6,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import Canvas from './components/Canvas/Canvas';
 import EditToolbar from './components/EditToolbar/EditToolbar';
+import ModulePicker from './components/ModulePicker/ModulePicker';
 import { useLayout } from './hooks/useLayout';
 import { useConfig } from './hooks/useConfig';
 import { useAppStore } from './store/appStore';
@@ -175,6 +176,7 @@ const App: React.FC = () => {
         width={canvasWidth}
       />
       <EditToolbar />
+      <ModulePicker />
       {!isEditMode && (
         <button
           onClick={toggleEditMode}
