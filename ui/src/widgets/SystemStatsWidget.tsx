@@ -73,7 +73,7 @@ const SystemStatsWidget: React.FC<SystemStatsWidgetProps> = ({ instanceId, confi
     setRealtimeData(data);
   }, []);
 
-  useModuleEvents<StatsData>('system_stats', instanceId, handleEvent, 'data');
+  useModuleEvents<StatsData>('system_stats', instanceId, handleEvent, `data:${instanceId}`);
 
   const display = realtimeData ?? restData;
 

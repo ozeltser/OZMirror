@@ -25,11 +25,18 @@ const startTime = Date.now();
 
 const API_KEY = process.env.API_KEY ?? '';
 const MAX_NOTE_LENGTH = 10_000;
+const MIN_FONT_SIZE = 8;
+const MAX_FONT_SIZE = 48;
+const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
+
+if (!API_KEY) {
+  console.error('[routes] FATAL: API_KEY environment variable is not set — all authenticated requests will be rejected');
+}
 
 function authenticateApiKey(req: Request, res: Response, next: NextFunction): void {
   if (!API_KEY) {
-    // API key not configured — skip authentication (dev/test mode)
-    return next();
+    res.status(401).json({ error: 'Server misconfiguration: API_KEY is not configured' });
+    return;
   }
   const provided = req.headers['x-api-key'];
   if (provided !== API_KEY) {
@@ -74,6 +81,12 @@ router.post('/notes', authenticateApiKey, async (req: Request, res: Response) =>
   if (content.length > MAX_NOTE_LENGTH) {
     return res.status(400).json({ error: `Content exceeds ${MAX_NOTE_LENGTH.toLocaleString()} character limit` });
   }
+  if (color !== undefined && (typeof color !== 'string' || !HEX_COLOR_RE.test(color))) {
+    return res.status(400).json({ error: 'Invalid color — must be a 6-digit hex color (e.g. #ffeb3b)' });
+  }
+  if (fontSize !== undefined && (typeof fontSize !== 'number' || fontSize < MIN_FONT_SIZE || fontSize > MAX_FONT_SIZE)) {
+    return res.status(400).json({ error: `Invalid fontSize — must be a number between ${MIN_FONT_SIZE} and ${MAX_FONT_SIZE}` });
+  }
 
   const note = createNote(
     instanceId,
@@ -113,6 +126,12 @@ router.put('/notes/:id', authenticateApiKey, async (req: Request, res: Response)
 
   if (typeof content === 'string' && content.length > MAX_NOTE_LENGTH) {
     return res.status(400).json({ error: `Content exceeds ${MAX_NOTE_LENGTH.toLocaleString()} character limit` });
+  }
+  if (color !== undefined && (typeof color !== 'string' || !HEX_COLOR_RE.test(color))) {
+    return res.status(400).json({ error: 'Invalid color — must be a 6-digit hex color (e.g. #ffeb3b)' });
+  }
+  if (fontSize !== undefined && (typeof fontSize !== 'number' || fontSize < MIN_FONT_SIZE || fontSize > MAX_FONT_SIZE)) {
+    return res.status(400).json({ error: `Invalid fontSize — must be a number between ${MIN_FONT_SIZE} and ${MAX_FONT_SIZE}` });
   }
 
   const updated = updateNote(id, {

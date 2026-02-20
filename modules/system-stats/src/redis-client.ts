@@ -1,7 +1,8 @@
 /**
  * Redis pub/sub client for the System Stats module.
- * Publishes system stats to module:system_stats:data at the minimum
- * refreshInterval configured across all registered instances.
+ * Publishes system stats to per-instance channels
+ * (module:system_stats:data:<instanceId>) at the minimum refreshInterval
+ * configured across all registered instances.
  */
 
 import { createClient, RedisClientType } from 'redis';
@@ -42,16 +43,17 @@ function restartPublishing(intervalMs: number): void {
     }
 
     for (const [instanceId] of instanceConfigs) {
+      const channel = `${CHANNEL}:${instanceId}`;
       const payload = JSON.stringify({ instanceId, data: stats, timestamp: stats.timestamp });
       try {
-        await publisher!.publish(CHANNEL, payload);
+        await publisher!.publish(channel, payload);
       } catch (err) {
         console.error('[redis-client] Publish error:', err);
       }
     }
   }, intervalMs);
 
-  console.log(`[redis-client] Publishing to ${CHANNEL} every ${intervalMs}ms`);
+  console.log(`[redis-client] Publishing to ${CHANNEL}:<instanceId> every ${intervalMs}ms`);
 }
 
 export function setInstanceConfig(instanceId: string, config: SystemStatsConfig): void {

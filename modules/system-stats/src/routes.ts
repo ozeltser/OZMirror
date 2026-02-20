@@ -18,10 +18,14 @@ const startTime = Date.now();
 
 const API_KEY = process.env.API_KEY ?? '';
 
+if (!API_KEY) {
+  console.error('[routes] FATAL: API_KEY environment variable is not set — all authenticated requests will be rejected');
+}
+
 function authenticateApiKey(req: Request, res: Response, next: NextFunction): void {
   if (!API_KEY) {
-    // API key not configured — skip authentication (dev/test mode)
-    return next();
+    res.status(401).json({ error: 'Server misconfiguration: API_KEY is not configured' });
+    return;
   }
   const provided = req.headers['x-api-key'];
   if (provided !== API_KEY) {
