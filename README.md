@@ -30,32 +30,60 @@ Browser → Nginx → React UI
 - Docker & Docker Compose
 - (For Pi) Raspberry Pi 4 with 4GB+ RAM
 
-### Installation
+---
 
-1. **Clone & Configure**:
+### Option A — Local / Development (recommended for first run)
+
+No SSL certificates required. Uses HTTP with hot-reload.
+
+1. **Clone & configure**
    ```bash
    git clone <your-repo-url>
    cd OZMirror
    cp .env.example .env
-   # Edit .env with your API keys
    ```
+   Open `.env` and set at minimum:
+   - `REDIS_PASSWORD`, `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD` — choose any secure passwords
+   - `API_KEY` — a random 32-char string (e.g. `openssl rand -hex 16`)
+   - Optional: `WEATHER_API_KEY`, Spotify, and Google Calendar keys for those modules
 
-2. **Start Services**:
+2. **Start in dev mode**
    ```bash
-   docker-compose up -d
+   docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
    ```
 
-3. **Open in Browser**:
+3. **Open in browser**
    ```
-   http://localhost:80
+   http://localhost
    ```
 
-### Development Mode
+---
+
+### Option B — Production (HTTPS)
+
+Same `.env` steps as above, then provide SSL certificates **before** starting:
 
 ```bash
-# Start with hot reload
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+# Option 1: Self-signed cert (local/testing only — browser will warn)
+openssl req -x509 -newkey rsa:4096 \
+  -keyout nginx/ssl/key.pem \
+  -out nginx/ssl/cert.pem \
+  -days 365 -nodes \
+  -subj "/CN=localhost"
+
+# Option 2: Copy an existing cert/key pair (e.g. from Let's Encrypt)
+cp /path/to/fullchain.pem nginx/ssl/cert.pem
+cp /path/to/privkey.pem   nginx/ssl/key.pem
 ```
+
+Then start:
+```bash
+docker-compose up -d
+```
+
+Access at `https://localhost` (HTTP automatically redirects to HTTPS).
+
+> Cert files are gitignored — never commit them to the repository.
 
 ## Documentation
 
