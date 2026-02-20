@@ -10,8 +10,8 @@ services:
       dockerfile: Dockerfile
     container_name: ozmirror-gateway
     ports:
-      - "80:80"
-      - "443:443"
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
     environment:
       - API_KEY=${API_KEY}
     volumes:
@@ -172,6 +172,68 @@ services:
       start_period: 40s
     restart: unless-stopped
 
+  # =====================================
+  # Module: System Stats
+  # =====================================
+  system_stats-module:
+    build:
+      context: ./modules/system-stats
+      dockerfile: Dockerfile
+    container_name: ozmirror-system-stats
+    environment:
+      - MODULE_ID=system_stats
+      - CONFIG_SERVICE_URL=${CONFIG_SERVICE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - API_KEY=${API_KEY}
+      - PORT=3001
+    depends_on:
+      redis:
+        condition: service_healthy
+      config-service:
+        condition: service_healthy
+    networks:
+      - ozmirror-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # =====================================
+  # Module: Sticky Notes
+  # =====================================
+  sticky_notes-module:
+    build:
+      context: ./modules/sticky-notes
+      dockerfile: Dockerfile
+    container_name: ozmirror-sticky-notes
+    environment:
+      - MODULE_ID=sticky_notes
+      - CONFIG_SERVICE_URL=${CONFIG_SERVICE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - API_KEY=${API_KEY}
+      - PORT=3001
+    volumes:
+      - sticky-notes-data:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
+      config-service:
+        condition: service_healthy
+    networks:
+      - ozmirror-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
 # =====================================
 # Volumes
 # =====================================
@@ -181,6 +243,8 @@ volumes:
   redis-data:
     driver: local
   clock-data:
+    driver: local
+  sticky-notes-data:
     driver: local
 
 # =====================================
