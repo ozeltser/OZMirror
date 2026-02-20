@@ -4,6 +4,7 @@
 
 import axios from 'axios';
 import { MANIFEST } from './manifest';
+import { INSTANCE_ID_PATTERN } from './utils';
 
 const CONFIG_SERVICE_URL = process.env.CONFIG_SERVICE_URL ?? 'http://config-service:8000';
 const API_KEY = process.env.API_KEY ?? '';
@@ -46,8 +47,6 @@ export async function registerModule(serviceUrl: string): Promise<void> {
   }
   console.error('[config-client] Module registration failed after 5 attempts:', lastError);
 }
-
-const INSTANCE_ID_PATTERN = /^[a-zA-Z0-9_-]+$/;
 
 export async function fetchInstanceConfig(instanceId: string): Promise<SystemStatsConfig> {
   if (!INSTANCE_ID_PATTERN.test(instanceId)) {

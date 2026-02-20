@@ -6,14 +6,30 @@
  *   POST /action
  */
 
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { collectStats } from './stats-collector';
 import { fetchInstanceConfig, DEFAULT_CONFIG, SystemStatsConfig } from './config-client';
 import { setInstanceConfig } from './redis-client';
 import { MANIFEST } from './manifest';
+import { validateInstanceId } from './utils';
 
 const router = Router();
 const startTime = Date.now();
+
+const API_KEY = process.env.API_KEY ?? '';
+
+function authenticateApiKey(req: Request, res: Response, next: NextFunction): void {
+  if (!API_KEY) {
+    // API key not configured — skip authentication (dev/test mode)
+    return next();
+  }
+  const provided = req.headers['x-api-key'];
+  if (provided !== API_KEY) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+  next();
+}
 
 router.get('/health', (_req: Request, res: Response) => {
   res.json({
@@ -27,9 +43,11 @@ router.get('/manifest', (_req: Request, res: Response) => {
   res.json(MANIFEST);
 });
 
-router.get('/data', async (req: Request, res: Response) => {
-  const instanceId =
-    typeof req.query.instanceId === 'string' ? req.query.instanceId : 'system_stats_01';
+router.get('/data', authenticateApiKey, async (req: Request, res: Response) => {
+  const { instanceId } = req.query;
+  if (!validateInstanceId(instanceId)) {
+    return res.status(400).json({ error: 'Missing or invalid instanceId' });
+  }
 
   let config: SystemStatsConfig;
   try {
@@ -49,7 +67,7 @@ router.get('/data', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/action', async (req: Request, res: Response) => {
+router.post('/action', authenticateApiKey, async (req: Request, res: Response) => {
   const { instanceId, action } = req.body ?? {};
 
   if (typeof action !== 'string') {
@@ -66,9 +84,11 @@ router.post('/action', async (req: Request, res: Response) => {
   }
 
   if (action === 'setConfig') {
-    const id = typeof instanceId === 'string' ? instanceId : 'system_stats_01';
-    const config = await fetchInstanceConfig(id).catch(() => DEFAULT_CONFIG);
-    setInstanceConfig(id, config);
+    if (!validateInstanceId(instanceId)) {
+      return res.status(400).json({ success: false, error: 'Missing or invalid instanceId' });
+    }
+    const config = await fetchInstanceConfig(instanceId).catch(() => DEFAULT_CONFIG);
+    setInstanceConfig(instanceId, config);
     return res.json({ success: true });
   }
 

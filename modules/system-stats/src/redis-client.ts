@@ -13,7 +13,8 @@ const REDIS_PASSWORD = process.env.REDIS_PASSWORD ?? '';
 const CHANNEL = 'module:system_stats:data';
 
 // Cap on registered instances to prevent DoS via memory exhaustion.
-const MAX_INSTANCES = 50;
+// Configurable via MAX_INSTANCES env var (default: 50).
+const MAX_INSTANCES = parseInt(process.env.MAX_INSTANCES ?? '50', 10);
 
 let publisher: RedisClientType | null = null;
 let intervalHandle: ReturnType<typeof setInterval> | null = null;
@@ -63,8 +64,8 @@ export function setInstanceConfig(instanceId: string, config: SystemStatsConfig)
 
   instanceConfigs.set(instanceId, config);
 
-  // Use the minimum refreshInterval across all registered instances.
-  const minInterval = Math.min(...[...instanceConfigs.values()].map((c) => c.refreshInterval));
+  // Use the minimum refreshInterval across all registered instances, clamped to ≥1000ms.
+  const minInterval = Math.max(1000, Math.min(...[...instanceConfigs.values()].map((c) => c.refreshInterval)));
   if (minInterval !== currentIntervalMs) {
     restartPublishing(minInterval);
   }

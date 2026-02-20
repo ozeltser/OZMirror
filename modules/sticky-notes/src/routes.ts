@@ -8,7 +8,7 @@
  *   DELETE /notes/:id?instanceId=<id>
  */
 
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import {
   getNotesByInstance,
   getNoteById,
@@ -18,14 +18,25 @@ import {
 } from './db';
 import { publishNotesUpdate } from './redis-client';
 import { MANIFEST } from './manifest';
+import { validateInstanceId } from './utils';
 
 const router = Router();
 const startTime = Date.now();
 
-const INSTANCE_ID_PATTERN = /^[a-zA-Z0-9_-]+$/;
+const API_KEY = process.env.API_KEY ?? '';
+const MAX_NOTE_LENGTH = 10_000;
 
-function validateInstanceId(instanceId: unknown): instanceId is string {
-  return typeof instanceId === 'string' && INSTANCE_ID_PATTERN.test(instanceId);
+function authenticateApiKey(req: Request, res: Response, next: NextFunction): void {
+  if (!API_KEY) {
+    // API key not configured — skip authentication (dev/test mode)
+    return next();
+  }
+  const provided = req.headers['x-api-key'];
+  if (provided !== API_KEY) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+  next();
 }
 
 router.get('/health', (_req: Request, res: Response) => {
@@ -41,7 +52,7 @@ router.get('/manifest', (_req: Request, res: Response) => {
 });
 
 // GET /notes?instanceId=<id>  — list all notes for an instance
-router.get('/notes', (req: Request, res: Response) => {
+router.get('/notes', authenticateApiKey, (req: Request, res: Response) => {
   const instanceId = req.query.instanceId;
   if (!validateInstanceId(instanceId)) {
     return res.status(400).json({ error: 'Missing or invalid instanceId' });
@@ -51,7 +62,7 @@ router.get('/notes', (req: Request, res: Response) => {
 });
 
 // POST /notes  — create a new note
-router.post('/notes', async (req: Request, res: Response) => {
+router.post('/notes', authenticateApiKey, async (req: Request, res: Response) => {
   const { instanceId, content, color, fontSize } = req.body ?? {};
 
   if (!validateInstanceId(instanceId)) {
@@ -60,8 +71,8 @@ router.post('/notes', async (req: Request, res: Response) => {
   if (typeof content !== 'string') {
     return res.status(400).json({ error: 'Missing or invalid "content" field' });
   }
-  if (content.length > 10_000) {
-    return res.status(400).json({ error: 'Content exceeds 10,000 character limit' });
+  if (content.length > MAX_NOTE_LENGTH) {
+    return res.status(400).json({ error: `Content exceeds ${MAX_NOTE_LENGTH.toLocaleString()} character limit` });
   }
 
   const note = createNote(
@@ -80,7 +91,7 @@ router.post('/notes', async (req: Request, res: Response) => {
 });
 
 // PUT /notes/:id  — update a note (instanceId required for ownership check)
-router.put('/notes/:id', async (req: Request, res: Response) => {
+router.put('/notes/:id', authenticateApiKey, async (req: Request, res: Response) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) {
     return res.status(400).json({ error: 'Invalid note id' });
@@ -100,8 +111,8 @@ router.put('/notes/:id', async (req: Request, res: Response) => {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
-  if (typeof content === 'string' && content.length > 10_000) {
-    return res.status(400).json({ error: 'Content exceeds 10,000 character limit' });
+  if (typeof content === 'string' && content.length > MAX_NOTE_LENGTH) {
+    return res.status(400).json({ error: `Content exceeds ${MAX_NOTE_LENGTH.toLocaleString()} character limit` });
   }
 
   const updated = updateNote(id, {
@@ -123,7 +134,7 @@ router.put('/notes/:id', async (req: Request, res: Response) => {
 });
 
 // DELETE /notes/:id?instanceId=<id>  — delete a note (instanceId required for ownership check)
-router.delete('/notes/:id', async (req: Request, res: Response) => {
+router.delete('/notes/:id', authenticateApiKey, async (req: Request, res: Response) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) {
     return res.status(400).json({ error: 'Invalid note id' });
