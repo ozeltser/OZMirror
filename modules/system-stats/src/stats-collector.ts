@@ -19,7 +19,13 @@ export async function collectStats(): Promise<StatsData> {
     si.fsSize(),
   ]);
 
-  const primaryFs = fsSizes.find((fs) => fs.mount === '/') ?? fsSizes[0];
+  const VIRTUAL_FS_TYPES = new Set(['tmpfs', 'overlay', 'squashfs', 'devtmpfs']);
+  const primaryFs =
+    fsSizes.find((fs) => fs.mount === '/') ??
+    fsSizes
+      .filter((fs) => !VIRTUAL_FS_TYPES.has(fs.type))
+      .sort((a, b) => b.size - a.size)[0] ??
+    fsSizes[0];
 
   return {
     cpu: {

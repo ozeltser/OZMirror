@@ -4,13 +4,14 @@
  *   GET    /manifest
  *   GET    /notes?instanceId=<id>
  *   POST   /notes  { instanceId, content, color?, fontSize? }
- *   PUT    /notes/:id  { content?, color?, fontSize? }
- *   DELETE /notes/:id
+ *   PUT    /notes/:id  { instanceId, content?, color?, fontSize? }
+ *   DELETE /notes/:id?instanceId=<id>
  */
 
 import { Router, Request, Response } from 'express';
 import {
   getNotesByInstance,
+  getNoteById,
   createNote,
   updateNote,
   deleteNote,
@@ -71,19 +72,33 @@ router.post('/notes', async (req: Request, res: Response) => {
   );
 
   const allNotes = getNotesByInstance(instanceId);
-  publishNotesUpdate(instanceId, allNotes).catch(() => {});
+  publishNotesUpdate(instanceId, allNotes).catch((err) =>
+    console.error('[routes] Failed to publish notes update:', err)
+  );
 
   res.status(201).json({ note });
 });
 
-// PUT /notes/:id  — update a note
+// PUT /notes/:id  — update a note (instanceId required for ownership check)
 router.put('/notes/:id', async (req: Request, res: Response) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) {
     return res.status(400).json({ error: 'Invalid note id' });
   }
 
-  const { content, color, fontSize } = req.body ?? {};
+  const { instanceId, content, color, fontSize } = req.body ?? {};
+
+  if (!validateInstanceId(instanceId)) {
+    return res.status(400).json({ error: 'Missing or invalid instanceId' });
+  }
+
+  const existing = getNoteById(id);
+  if (!existing) {
+    return res.status(404).json({ error: 'Note not found' });
+  }
+  if (existing.instance_id !== instanceId) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
 
   if (typeof content === 'string' && content.length > 10_000) {
     return res.status(400).json({ error: 'Content exceeds 10,000 character limit' });
@@ -99,23 +114,40 @@ router.put('/notes/:id', async (req: Request, res: Response) => {
     return res.status(404).json({ error: 'Note not found' });
   }
 
-  const allNotes = getNotesByInstance(updated.instance_id);
-  publishNotesUpdate(updated.instance_id, allNotes).catch(() => {});
+  const allNotes = getNotesByInstance(instanceId);
+  publishNotesUpdate(instanceId, allNotes).catch((err) =>
+    console.error('[routes] Failed to publish notes update:', err)
+  );
 
   res.json({ note: updated });
 });
 
-// DELETE /notes/:id  — delete a note
+// DELETE /notes/:id?instanceId=<id>  — delete a note (instanceId required for ownership check)
 router.delete('/notes/:id', async (req: Request, res: Response) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) {
     return res.status(400).json({ error: 'Invalid note id' });
   }
 
-  const deleted = deleteNote(id);
-  if (!deleted) {
+  const instanceId = req.query.instanceId;
+  if (!validateInstanceId(instanceId)) {
+    return res.status(400).json({ error: 'Missing or invalid instanceId' });
+  }
+
+  const note = getNoteById(id);
+  if (!note) {
     return res.status(404).json({ error: 'Note not found' });
   }
+  if (note.instance_id !== instanceId) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  deleteNote(id);
+
+  const remaining = getNotesByInstance(instanceId);
+  publishNotesUpdate(instanceId, remaining).catch((err) =>
+    console.error('[routes] Failed to publish notes update:', err)
+  );
 
   res.json({ success: true });
 });

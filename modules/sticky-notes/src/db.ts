@@ -62,7 +62,9 @@ export function createNote(
     )
     .run(instanceId, content, color, fontSize);
 
-  return getNoteById(result.lastInsertRowid as number)!;
+  const created = getNoteById(result.lastInsertRowid as number);
+  if (!created) throw new Error('Failed to retrieve created note from database');
+  return created;
 }
 
 export function updateNote(
@@ -82,7 +84,9 @@ export function updateNote(
      WHERE id = ?`
   ).run(content, color, font_size, id);
 
-  return getNoteById(id)!;
+  const updated = getNoteById(id);
+  if (!updated) throw new Error('Failed to retrieve updated note from database');
+  return updated;
 }
 
 export function deleteNote(id: number): boolean {

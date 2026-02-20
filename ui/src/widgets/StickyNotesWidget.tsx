@@ -65,7 +65,8 @@ const StickyNotesWidget: React.FC<StickyNotesWidgetProps> = ({ instanceId, confi
   const handleEvent = useCallback((data: { notes: Note[] }) => {
     setNotes(data.notes);
   }, []);
-  useModuleEvents<{ notes: Note[] }>('sticky_notes', instanceId, handleEvent, 'data');
+  // Subscribe to the instance-specific channel: module:sticky_notes:data:<instanceId>
+  useModuleEvents<{ notes: Note[] }>('sticky_notes', instanceId, handleEvent, `data:${instanceId}`);
 
   const handleAddNote = async () => {
     try {
@@ -74,7 +75,7 @@ const StickyNotesWidget: React.FC<StickyNotesWidgetProps> = ({ instanceId, confi
         content: '',
         color: defaultColor,
       });
-      await loadNotes();
+      // No need to reload — the backend publishes a WS update that sets state via handleEvent
     } catch {
       setError('Failed to create note');
     }
@@ -89,7 +90,7 @@ const StickyNotesWidget: React.FC<StickyNotesWidgetProps> = ({ instanceId, confi
   const handleSaveEdit = async (note: Note) => {
     if (editingId !== note.id) return;
     try {
-      await noteClient().put(`/notes/${note.id}`, { content: editContent });
+      await noteClient().put(`/notes/${note.id}`, { instanceId, content: editContent });
       setNotes((prev) =>
         prev.map((n) => (n.id === note.id ? { ...n, content: editContent } : n))
       );
@@ -102,7 +103,7 @@ const StickyNotesWidget: React.FC<StickyNotesWidgetProps> = ({ instanceId, confi
 
   const handleColorChange = async (note: Note, color: string) => {
     try {
-      await noteClient().put(`/notes/${note.id}`, { color });
+      await noteClient().put(`/notes/${note.id}`, { instanceId, color });
       setNotes((prev) => prev.map((n) => (n.id === note.id ? { ...n, color } : n)));
     } catch {
       setError('Failed to update note color');
@@ -111,7 +112,7 @@ const StickyNotesWidget: React.FC<StickyNotesWidgetProps> = ({ instanceId, confi
 
   const handleDelete = async (id: number) => {
     try {
-      await noteClient().delete(`/notes/${id}`);
+      await noteClient().delete(`/notes/${id}`, { params: { instanceId } });
       setNotes((prev) => prev.filter((n) => n.id !== id));
     } catch {
       setError('Failed to delete note');

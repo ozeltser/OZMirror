@@ -8,8 +8,6 @@ import { Note } from './db';
 
 const REDIS_URL = process.env.REDIS_URL ?? 'redis://redis:6379';
 const REDIS_PASSWORD = process.env.REDIS_PASSWORD ?? '';
-const CHANNEL = 'module:sticky_notes:data';
-
 let publisher: RedisClientType | null = null;
 
 export async function connectRedis(): Promise<void> {
@@ -31,8 +29,9 @@ export async function publishNotesUpdate(instanceId: string, notes: Note[]): Pro
     data: { notes },
     timestamp: Date.now(),
   });
+  const channel = `module:sticky_notes:data:${instanceId}`;
   try {
-    await publisher.publish(CHANNEL, payload);
+    await publisher.publish(channel, payload);
   } catch (err) {
     console.error('[redis-client] Publish error:', err);
   }

@@ -60,7 +60,8 @@ export async function fetchInstanceConfig(instanceId: string): Promise<SystemSta
       { timeout: 3000 }
     );
     return { ...DEFAULT_CONFIG, ...data };
-  } catch {
+  } catch (err) {
+    console.warn('[config-client] Failed to fetch config for instance %s:', instanceId, err);
     return DEFAULT_CONFIG;
   }
 }
