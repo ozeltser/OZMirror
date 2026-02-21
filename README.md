@@ -28,6 +28,7 @@ Browser → Nginx → React UI
 ### Prerequisites
 
 - Docker & Docker Compose
+- `make` (pre-installed on Linux/macOS; on Windows use [Git Bash](https://git-scm.com/) or [WSL](https://learn.microsoft.com/en-us/windows/wsl/install))
 - (For Pi) Raspberry Pi 4 with 4GB+ RAM
 
 ---
@@ -45,6 +46,7 @@ No SSL certificates required. Uses HTTP with hot-reload.
    Open `.env` and set at minimum:
    - `REDIS_PASSWORD`, `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD` — choose any secure passwords
    - `API_KEY` — a random 32-char string (e.g. `openssl rand -hex 16`)
+   - `ALLOWED_ORIGINS` / `ALLOWED_CORS_ORIGINS` — add any domain/IP you'll use to access the UI (see note below)
    - Optional: `WEATHER_API_KEY`, Spotify, and Google Calendar keys for those modules
 
 2. **Start in dev mode**
@@ -78,12 +80,60 @@ cp /path/to/privkey.pem   nginx/ssl/key.pem
 
 Then start:
 ```bash
-docker-compose up -d
+make deploy
 ```
 
 Access at `https://localhost` (HTTP automatically redirects to HTTPS).
 
 > Cert files are gitignored — never commit them to the repository.
+
+---
+
+### CORS: accessing from a custom domain or remote machine
+
+If you open OZMirror from any address other than `localhost` (e.g. a domain name or another machine on your network), add that origin to `.env`:
+
+```env
+ALLOWED_ORIGINS=http://localhost,http://localhost:80,https://yourdomain.com
+ALLOWED_CORS_ORIGINS=http://localhost,http://localhost:80,https://yourdomain.com
+```
+
+Also add the same domain to `nginx/nginx.conf` inside the `map $http_origin $allow_origin` block:
+
+```nginx
+map $http_origin $allow_origin {
+    default                              "";
+    ~^http://localhost(:[0-9]+)?$        $http_origin;
+    ~^http://127\.0\.0\.1(:[0-9]+)?$    $http_origin;
+    ~^https://yourdomain\.com$           $http_origin;
+}
+```
+
+Then run `make deploy` to rebuild and restart with the new config.
+
+> **Why?** Browsers enforce CORS preflight checks on write requests (`PUT`/`DELETE`). Without the origin in both lists, layout saves will silently fail.
+
+---
+
+## Makefile — deployment workflow
+
+A `Makefile` is included so you never have to remember Docker flags. Always use `make deploy` (not plain `docker compose up`) after pulling new code — it rebuilds the images so code changes actually take effect.
+
+| Command | What it does |
+|---------|-------------|
+| `make deploy` | `git pull` + rebuild all images + restart (**use this every time you update**) |
+| `make build` | Rebuild all images without restarting |
+| `make restart` | Restart containers without rebuilding (for `.env`-only changes) |
+| `make down` | Stop and remove all containers (data volumes are preserved) |
+| `make ps` | Show status of all containers |
+| `make logs` | Tail logs for all services |
+| `make logs-gateway` | Tail Nginx gateway logs |
+| `make logs-config` | Tail config-service logs |
+| `make logs-ui` | Tail UI container logs |
+| `make logs-ws` | Tail WebSocket bridge logs |
+| `make help` | Print all available targets |
+
+> **`make` not found?** On Debian/Ubuntu: `sudo apt install make`. On macOS it ships with Xcode Command Line Tools (`xcode-select --install`).
 
 ## Documentation
 
