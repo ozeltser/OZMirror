@@ -23,8 +23,7 @@ Each plan below expands on a specific component from the master plan:
 | 3 | [Clock Module](03-clock-module.md) | 2 | 8-9 | Not Started |
 | 4 | [Simple Modules](04-simple-modules.md) | 3 | 13-14 | Not Started |
 | 5 | [API-Dependent Modules](05-api-modules.md) | 4 | 15-17 | Not Started |
-| 6 | [Now Playing Module](06-now-playing.md) | 6 | 21-22 | Not Started |
-| 7 | [Deployment & Testing](07-deployment-testing.md) | 7-8 | 23-27 | Not Started |
+| 6 | [Deployment & Testing](07-deployment-testing.md) | 7-8 | 23-27 | Not Started |
 
 ## Implementation Order
 
@@ -41,16 +40,14 @@ Follow the plans in sequence:
    ↓
 5. Advanced UI Features (Phase 5)
    ↓
-6. Now Playing Module (Phase 6)
-   ↓
-7. Deployment & Testing (Phase 7-8) → 🎉 v1 Complete
+6. Deployment & Testing (Phase 6-7) → 🎉 v1 Complete
 ```
 
 ## Milestones
 
 - **Day 7**: Core infrastructure complete
 - **Day 12**: 🎉 **MVP** - Working clock with real-time updates
-- **Day 22**: All 7 modules complete
+- **Day 22**: All 6 modules complete
 - **Day 27**: 🎉 **v1 Complete** - Production ready
 
 ## How to Use These Plans

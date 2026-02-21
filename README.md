@@ -4,7 +4,7 @@ A distributed, microservices-based smart display application inspired by MagicMi
 
 ## Features
 
-- 🕐 **7 Bundled Modules**: Clock, Weather, Calendar, RSS, System Stats, Now Playing, Sticky Notes
+- 🕐 **6 Bundled Modules**: Clock, Weather, Calendar, RSS, System Stats, Sticky Notes
 - 🎨 **Drag & Drop Layout**: Customize your display with touch or mouse
 - ⚡ **Real-time Updates**: WebSocket-powered live data
 - 🎭 **Themeable UI**: Dark, Light, AMOLED themes + custom themes
@@ -47,7 +47,7 @@ No SSL certificates required. Uses HTTP with hot-reload.
    - `REDIS_PASSWORD`, `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD` — choose any secure passwords
    - `API_KEY` — a random 32-char string (e.g. `openssl rand -hex 16`)
    - `ALLOWED_ORIGINS` / `ALLOWED_CORS_ORIGINS` — add any domain/IP you'll use to access the UI (see note below)
-   - Optional: `WEATHER_API_KEY`, Spotify, and Google Calendar keys for those modules
+   - Optional: `WEATHER_API_KEY` and Google Calendar keys for those modules
 
 2. **Start in dev mode**
    ```bash
