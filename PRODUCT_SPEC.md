@@ -593,7 +593,6 @@ Themes are JSON files stored in `/themes`. Each theme overrides a set of CSS cus
 | calendar | Upcoming calendar events | Google/iCal URL, days to show |
 | rss_feed | Scrolling RSS / news headlines | Feed URL, item count, scroll speed |
 | system_stats | CPU, RAM, disk usage | Update interval, which stats to show |
-| now_playing | Current media playback info | Source (Spotify / system MPRIS) |
 | sticky_notes | Editable text notes on screen | Font size, color |
 
 ---
