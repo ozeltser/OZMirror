@@ -12,6 +12,7 @@ interface UseLayoutResult {
   isLoading: boolean;
   error: Error | null;
   persistLayout: (layout: LayoutData) => Promise<void>;
+  switchProfile: (name: string) => Promise<void>;
 }
 
 export function useLayout(): UseLayoutResult {
@@ -40,5 +41,11 @@ export function useLayout(): UseLayoutResult {
     }
   };
 
-  return { layout, isLoading, error, persistLayout };
+  const switchProfile = async (name: string) => {
+    if (!layout) return;
+    const updated: LayoutData = { ...layout, activeProfile: name };
+    await persistLayout(updated);
+  };
+
+  return { layout, isLoading, error, persistLayout, switchProfile };
 }

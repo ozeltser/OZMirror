@@ -7,24 +7,19 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import Canvas from './components/Canvas/Canvas';
 import EditToolbar from './components/EditToolbar/EditToolbar';
 import ModulePicker from './components/ModulePicker/ModulePicker';
+import SettingsPanel from './components/SettingsPanel/SettingsPanel';
 import { useLayout } from './hooks/useLayout';
 import { useConfig } from './hooks/useConfig';
 import { useAppStore } from './store/appStore';
 import { wsClient } from './core/WebSocketClient';
 import { inputHandler } from './core/InputHandler';
+import { applyTheme } from './utils/theme';
 import type { GridItem } from './types';
-
-function applyTheme(variables: Record<string, string>): void {
-  const root = document.documentElement;
-  for (const [key, value] of Object.entries(variables)) {
-    root.style.setProperty(key, value);
-  }
-}
 
 const App: React.FC = () => {
   const { layout, isLoading: layoutLoading, persistLayout } = useLayout();
   const { settings } = useConfig();
-  const { isEditMode, toggleEditMode, setWsConnected } = useAppStore();
+  const { isEditMode, toggleEditMode, setWsConnected, toggleSettingsPanel } = useAppStore();
 
   const [canvasWidth, setCanvasWidth] = useState(window.innerWidth);
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -63,27 +58,25 @@ const App: React.FC = () => {
         document.exitFullscreen?.();
       }
     });
+    const removeCtrlComma = inputHandler.register('Ctrl+,', toggleSettingsPanel);
+    const removeCtrlS = inputHandler.register('Ctrl+S', () => {
+      const currentLayout = useAppStore.getState().layout;
+      if (currentLayout) persistLayout(currentLayout);
+    });
     return () => {
       removeE();
       removeEsc();
       removeF();
+      removeCtrlComma();
+      removeCtrlS();
       inputHandler.destroy();
     };
-  }, [toggleEditMode]);
+  }, [toggleEditMode, toggleSettingsPanel, persistLayout]);
 
   // Apply theme from settings
   useEffect(() => {
     if (!settings) return;
-    // Basic dark theme fallback — full theme loading can be expanded
-    const themeVars: Record<string, string> = {
-      '--color-bg': settings.theme === 'light' ? '#f5f5f5' : settings.theme === 'amoled' ? '#000000' : '#0d0d0d',
-      '--color-surface': settings.theme === 'light' ? '#ffffff' : settings.theme === 'amoled' ? '#0a0a0a' : '#1a1a1a',
-      '--color-accent': settings.theme === 'amoled' ? '#00e5ff' : '#4fc3f7',
-      '--color-text': settings.theme === 'light' ? '#212121' : '#e0e0e0',
-      '--color-text-secondary': settings.theme === 'light' ? '#616161' : '#9e9e9e',
-      '--color-border': settings.theme === 'light' ? '#e0e0e0' : settings.theme === 'amoled' ? '#111111' : '#2a2a2a',
-    };
-    applyTheme(themeVars);
+    applyTheme(settings.theme);
   }, [settings]);
 
   // Debounced layout persistence on drag/resize
@@ -177,6 +170,7 @@ const App: React.FC = () => {
       />
       <EditToolbar />
       <ModulePicker />
+      <SettingsPanel />
       {!isEditMode && (
         <button
           onClick={toggleEditMode}

@@ -9,8 +9,8 @@ const handlers: Map<string, KeyHandler> = new Map();
 
 function getKey(e: KeyboardEvent): string {
   const parts: string[] = [];
-  if (e.ctrlKey || e.metaKey) parts.push('Ctrl');
-  if (e.shiftKey) parts.push('Shift');
+  if (e.ctrlKey || e.metaKey) parts.push('CTRL');
+  if (e.shiftKey) parts.push('SHIFT');
   parts.push(e.key.toUpperCase());
   return parts.join('+');
 }

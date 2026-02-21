@@ -3,7 +3,7 @@ import styles from './EditToolbar.module.css';
 import { useAppStore } from '../../store/appStore';
 
 const EditToolbar: React.FC = () => {
-  const { isEditMode, toggleEditMode, toggleModulePicker } = useAppStore();
+  const { isEditMode, toggleEditMode, toggleModulePicker, toggleSettingsPanel } = useAppStore();
 
   if (!isEditMode) return null;
 
@@ -12,6 +12,9 @@ const EditToolbar: React.FC = () => {
       <span className={styles.label}>Edit Mode</span>
       <button className={styles.btn} onClick={toggleModulePicker}>
         + Add Module
+      </button>
+      <button className={styles.btn} onClick={toggleSettingsPanel} title="Settings (Ctrl+,)">
+        ⚙ Settings
       </button>
       <button className={`${styles.btn} ${styles.activeBtn}`} onClick={toggleEditMode}>
         Done
