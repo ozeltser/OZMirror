@@ -262,6 +262,67 @@ services:
       start_period: 40s
     restart: unless-stopped
 
+  # =====================================
+  # Module: Weather
+  # =====================================
+  weather-module:
+    build:
+      context: ./modules/weather
+      dockerfile: Dockerfile
+    container_name: ozmirror-weather
+    environment:
+      - MODULE_ID=weather
+      - CONFIG_SERVICE_URL=${CONFIG_SERVICE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - API_KEY=${API_KEY}
+      - WEATHER_API_KEY=${WEATHER_API_KEY}
+      - PORT=3001
+    depends_on:
+      redis:
+        condition: service_healthy
+      config-service:
+        condition: service_healthy
+    networks:
+      - ozmirror-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # =====================================
+  # Module: RSS Feed
+  # =====================================
+  rss-module:
+    build:
+      context: ./modules/rss
+      dockerfile: Dockerfile
+    container_name: ozmirror-rss
+    environment:
+      - MODULE_ID=rss
+      - CONFIG_SERVICE_URL=${CONFIG_SERVICE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - API_KEY=${API_KEY}
+      - PORT=3001
+    depends_on:
+      redis:
+        condition: service_healthy
+      config-service:
+        condition: service_healthy
+    networks:
+      - ozmirror-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
 # =====================================
 # Volumes
 # =====================================
