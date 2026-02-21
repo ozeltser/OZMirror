@@ -20,7 +20,12 @@ export async function fetchLayout(): Promise<LayoutData> {
 }
 
 export async function saveLayout(layout: LayoutData): Promise<void> {
-  await client.put('/layout', layout);
+  const profile = layout.layouts[layout.activeProfile];
+  await client.put('/layout', {
+    profileName: layout.activeProfile,
+    grid: profile.grid,
+    moduleConfigs: profile.moduleConfigs,
+  });
 }
 
 export async function fetchProfiles(): Promise<string[]> {
