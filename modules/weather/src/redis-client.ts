@@ -23,13 +23,13 @@ const REFRESH_INTERVAL_MS = 10 * 60 * 1000;
 
 let publisher: RedisClientType | null = null;
 let cacheClient: RedisClientType | null = null;
-let intervalHandle: ReturnType<typeof setInterval> | null = null;
+let intervalHandle: ReturnType<typeof setTimeout> | null = null;
 
-// Per-instance config map populated when /data is called
-const instanceConfigs = new Map<string, WeatherConfig>();
+// Per-instance config map; entries carry a lastSeenAt timestamp for TTL pruning
+const instanceConfigs = new Map<string, { config: WeatherConfig; lastSeenAt: number }>();
 
 export function setInstanceConfig(instanceId: string, config: WeatherConfig): void {
-  instanceConfigs.set(instanceId, config);
+  instanceConfigs.set(instanceId, { config, lastSeenAt: Date.now() });
 }
 
 export function getCacheClient(): RedisClientType | null {
@@ -64,10 +64,17 @@ export function startPublishing(): void {
     return;
   }
 
-  intervalHandle = setInterval(async () => {
-    if (instanceConfigs.size === 0) return;
+  const tick = async () => {
+    // Prune instances not seen within the last 2 refresh intervals
+    const cutoff = Date.now() - 2 * REFRESH_INTERVAL_MS;
+    for (const [id, entry] of instanceConfigs) {
+      if (entry.lastSeenAt < cutoff) {
+        instanceConfigs.delete(id);
+        console.log(`[redis-client] Pruned stale instance ${id}`);
+      }
+    }
 
-    for (const [instanceId, config] of instanceConfigs) {
+    for (const [instanceId, { config }] of instanceConfigs) {
       try {
         await invalidateCache(instanceId, cacheClient);
 
@@ -86,7 +93,11 @@ export function startPublishing(): void {
         console.error(`[redis-client] Error refreshing instance ${instanceId}:`, err);
       }
     }
-  }, REFRESH_INTERVAL_MS);
+
+    intervalHandle = setTimeout(tick, REFRESH_INTERVAL_MS);
+  };
+
+  intervalHandle = setTimeout(tick, REFRESH_INTERVAL_MS);
 
   console.log(
     `[redis-client] Publishing to ${CHANNEL} every ${REFRESH_INTERVAL_MS / 60_000} min`
@@ -95,7 +106,7 @@ export function startPublishing(): void {
 
 export async function disconnectRedis(): Promise<void> {
   if (intervalHandle !== null) {
-    clearInterval(intervalHandle);
+    clearTimeout(intervalHandle);
     intervalHandle = null;
   }
   if (publisher) {

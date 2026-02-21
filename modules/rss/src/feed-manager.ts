@@ -102,7 +102,11 @@ async function fetchAndParse(feedUrl: string, maxItems: number): Promise<FeedDat
       : item.summary
         ? stripHtml(item.summary).slice(0, 200)
         : undefined,
-    pubDate: item.pubDate ? new Date(item.pubDate).toISOString() : undefined,
+    pubDate: (() => {
+      if (!item.pubDate) return undefined;
+      const d = new Date(item.pubDate);
+      return !isNaN(d.getTime()) ? d.toISOString() : undefined;
+    })(),
   }));
 
   return {
@@ -114,7 +118,7 @@ async function fetchAndParse(feedUrl: string, maxItems: number): Promise<FeedDat
 
 function stripHtml(text: string): string {
   return text
-    .replace(/<[^>]*>/g, '')
+    .replace(/<(?:[^>"']|"[^"]*"|'[^']*')*>/g, '') // handles > inside quoted attributes
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
