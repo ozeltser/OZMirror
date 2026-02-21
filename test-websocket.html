@@ -22,8 +22,8 @@
 <body>
   <h1>OZMirror — WebSocket Bridge Test</h1>
 
-  <label>Bridge URL
-    <input id="url" value="http://localhost/ws">
+  <label>Bridge URL (origin only — Socket.IO path <code>/ws</code> is set automatically)
+    <input id="url" value="http://localhost">
   </label>
   <label>API Key
     <input id="apiKey" type="password" placeholder="paste API_KEY here">
@@ -63,6 +63,7 @@
       log('Connecting to ' + url + ' …', 'msg-sys');
 
       socket = io(url, {
+        path: '/ws',
         transports: ['websocket'],
         auth: { apiKey: apiKey }
       });

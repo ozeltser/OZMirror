@@ -23,7 +23,11 @@ class WebSocketClient {
     if (this.socket) return;
 
     // No auth needed — the Nginx gateway injects X-API-Key on the proxy.
-    this.socket = io('/ws', {
+    // Use path '/ws' so HTTP requests go to /ws/ which nginx proxies to the
+    // WebSocket bridge.  (The first arg to io() sets the *namespace*, not the
+    // HTTP path — omitting it defaults to namespace "/".)
+    this.socket = io({
+      path: '/ws',
       transports: ['websocket', 'polling'],
     });
 
