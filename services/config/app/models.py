@@ -69,7 +69,7 @@ class CreateProfileRequest(BaseModel):
 class SetActiveProfileRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    name: str
+    name: str = Field(..., max_length=100, pattern=r"^[a-zA-Z0-9_-]+$")
 
 
 # ---------------------------------------------------------------------------

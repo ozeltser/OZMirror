@@ -87,14 +87,12 @@ async def set_active_profile(
     body: SetActiveProfileRequest, db: Session = Depends(get_db)
 ) -> SuccessResponse:
     """Set which profile is currently active."""
-    profiles = db_ops.get_profiles(db)
-    if body.name not in profiles:
+    if not db_ops.set_active_profile(db, body.name):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Profile '{body.name}' not found",
         )
-    db_ops.set_active_profile(db, body.name)
-    logger.info("Active profile set to '%s'", body.name)
+    logger.info("Active profile set to %r", body.name)
     return SuccessResponse()
 
 

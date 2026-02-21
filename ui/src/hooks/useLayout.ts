@@ -50,11 +50,11 @@ export function useLayout(): UseLayoutResult {
     }
     try {
       await setActiveProfile(name);
+      const updated: LayoutData = { ...layout, activeProfile: name };
+      setLayout(updated);
     } catch (err) {
       console.error('[useLayout] Failed to persist active profile:', err);
     }
-    const updated: LayoutData = { ...layout, activeProfile: name };
-    setLayout(updated);
   }, [layout, setLayout]);
 
   const refreshLayout = useCallback(async () => {

@@ -257,10 +257,14 @@ def upsert_profile_content(db: Session, profile_name: str, profile: LayoutProfil
     save_layout(db, layout)
 
 
-def set_active_profile(db: Session, name: str) -> None:
+def set_active_profile(db: Session, name: str) -> bool:
+    """Set the active profile. Returns False if the profile does not exist."""
     row = db.query(LayoutDataRow).filter(LayoutDataRow.id == 1).one()
+    if name not in row.profiles:
+        return False
     row.active_profile = name
     db.commit()
+    return True
 
 
 # -- Module instance config (lives inside the active layout profile) --

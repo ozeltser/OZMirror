@@ -79,6 +79,14 @@ const App: React.FC = () => {
     applyTheme(settings.theme);
   }, [settings]);
 
+  // Auto-recover when active profile is missing: fall back to "default"
+  useEffect(() => {
+    if (!layout) return;
+    if (!layout.layouts[layout.activeProfile] && layout.activeProfile !== 'default' && layout.layouts['default']) {
+      switchProfile('default');
+    }
+  }, [layout, switchProfile]);
+
   // Debounced layout persistence on drag/resize
   const handleLayoutChange = useCallback(
     (grid: GridItem[]) => {
@@ -152,11 +160,7 @@ const App: React.FC = () => {
 
   const activeProfile = layout.layouts[layout.activeProfile];
   if (!activeProfile) {
-    // Fallback to "default" if possible; otherwise show error with Settings accessible
     const fallback = layout.layouts['default'];
-    if (fallback && layout.activeProfile !== 'default') {
-      switchProfile('default');
-    }
     return (
       <>
         <div style={{ padding: 24, color: '#ef5350' }}>
