@@ -7,7 +7,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useAppStore } from '../../store/appStore';
 import { useConfig } from '../../hooks/useConfig';
 import { useLayout } from '../../hooks/useLayout';
-import { fetchProfiles, createProfile, deleteProfile } from '../../api/config';
+import { createProfile, deleteProfile } from '../../api/config';
 import { applyTheme } from '../../utils/theme';
 import styles from './SettingsPanel.module.css';
 
@@ -24,7 +24,7 @@ type TabId = 'display' | 'layout' | 'system';
 const SettingsPanel: React.FC = () => {
   const { isSettingsPanelOpen, closeSettingsPanel, wsConnected } = useAppStore();
   const { settings, updateSettings } = useConfig();
-  const { layout, switchProfile } = useLayout();
+  const { layout, switchProfile, refreshLayout } = useLayout();
 
   const [activeTab, setActiveTab] = useState<TabId>('display');
   const [profiles, setProfiles] = useState<string[]>([]);
@@ -34,18 +34,16 @@ const SettingsPanel: React.FC = () => {
   const [creating, setCreating] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // Load profiles when layout tab is opened
+  // Derive profile names from the layout in the store
   useEffect(() => {
     if (!isSettingsPanelOpen || activeTab !== 'layout') return;
-    setProfilesLoading(true);
-    fetchProfiles()
-      .then(setProfiles)
-      .catch((error) => {
-        console.error('[SettingsPanel] Failed to fetch profiles:', error);
-        setProfiles([]);
-      })
-      .finally(() => setProfilesLoading(false));
-  }, [isSettingsPanelOpen, activeTab]);
+    if (layout) {
+      setProfiles(Object.keys(layout.layouts));
+      setProfilesLoading(false);
+    } else {
+      setProfilesLoading(true);
+    }
+  }, [isSettingsPanelOpen, activeTab, layout]);
 
   // Close on Escape key
   useEffect(() => {
@@ -91,8 +89,7 @@ const SettingsPanel: React.FC = () => {
     setCreating(true);
     try {
       await createProfile(name, layout?.activeProfile ?? 'default');
-      const updated = await fetchProfiles();
-      setProfiles(updated);
+      await refreshLayout();
       setNewProfileName('');
     } catch (error) {
       console.error('[SettingsPanel] Failed to create profile:', error);
@@ -104,7 +101,7 @@ const SettingsPanel: React.FC = () => {
   const handleDeleteProfile = async (name: string) => {
     try {
       await deleteProfile(name);
-      setProfiles((prev) => prev.filter((p) => p !== name));
+      await refreshLayout();
     } catch (error) {
       console.error('[SettingsPanel] Failed to delete profile:', error);
     }

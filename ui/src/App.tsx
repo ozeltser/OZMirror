@@ -17,7 +17,7 @@ import { applyTheme } from './utils/theme';
 import type { GridItem } from './types';
 
 const App: React.FC = () => {
-  const { layout, isLoading: layoutLoading, persistLayout } = useLayout();
+  const { layout, isLoading: layoutLoading, persistLayout, switchProfile } = useLayout();
   const { settings } = useConfig();
   const { isEditMode, toggleEditMode, setWsConnected, toggleSettingsPanel } = useAppStore();
 
@@ -152,10 +152,19 @@ const App: React.FC = () => {
 
   const activeProfile = layout.layouts[layout.activeProfile];
   if (!activeProfile) {
+    // Fallback to "default" if possible; otherwise show error with Settings accessible
+    const fallback = layout.layouts['default'];
+    if (fallback && layout.activeProfile !== 'default') {
+      switchProfile('default');
+    }
     return (
-      <div style={{ padding: 24, color: '#ef5350' }}>
-        Active profile "{layout.activeProfile}" not found.
-      </div>
+      <>
+        <div style={{ padding: 24, color: '#ef5350' }}>
+          Active profile "{layout.activeProfile}" not found.
+          {fallback ? ' Reverting to default profile…' : ' Open Settings (Ctrl+,) to select a profile.'}
+        </div>
+        <SettingsPanel />
+      </>
     );
   }
 

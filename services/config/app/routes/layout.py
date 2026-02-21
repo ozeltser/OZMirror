@@ -12,6 +12,7 @@ from app.models import (
     CreateProfileRequest,
     LayoutData,
     LayoutProfile,
+    SetActiveProfileRequest,
     SuccessResponse,
     UpdateLayoutRequest,
 )
@@ -74,6 +75,26 @@ async def create_profile(
 
     db_ops.create_profile(db, body.name, body.copyFrom)
     logger.info("Created layout profile '%s' (copied from '%s')", body.name, body.copyFrom)
+    return SuccessResponse()
+
+
+@router.put(
+    "/active-profile",
+    response_model=SuccessResponse,
+    dependencies=[Depends(require_api_key)],
+)
+async def set_active_profile(
+    body: SetActiveProfileRequest, db: Session = Depends(get_db)
+) -> SuccessResponse:
+    """Set which profile is currently active."""
+    profiles = db_ops.get_profiles(db)
+    if body.name not in profiles:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Profile '{body.name}' not found",
+        )
+    db_ops.set_active_profile(db, body.name)
+    logger.info("Active profile set to '%s'", body.name)
     return SuccessResponse()
 
 

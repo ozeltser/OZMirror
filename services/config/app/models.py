@@ -66,6 +66,12 @@ class CreateProfileRequest(BaseModel):
     copyFrom: str = "default"
 
 
+class SetActiveProfileRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+
+
 # ---------------------------------------------------------------------------
 # Module registry models
 # ---------------------------------------------------------------------------

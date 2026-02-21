@@ -21,11 +21,19 @@ export async function fetchLayout(): Promise<LayoutData> {
 
 export async function saveLayout(layout: LayoutData): Promise<void> {
   const profile = layout.layouts[layout.activeProfile];
+  if (!profile) {
+    console.error('[config] Cannot save layout: active profile "%s" not found in layouts', layout.activeProfile);
+    return;
+  }
   await client.put('/layout', {
     profileName: layout.activeProfile,
     grid: profile.grid,
     moduleConfigs: profile.moduleConfigs,
   });
+}
+
+export async function setActiveProfile(name: string): Promise<void> {
+  await client.put('/layout/active-profile', { name });
 }
 
 export async function fetchProfiles(): Promise<string[]> {

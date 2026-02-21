@@ -257,6 +257,12 @@ def upsert_profile_content(db: Session, profile_name: str, profile: LayoutProfil
     save_layout(db, layout)
 
 
+def set_active_profile(db: Session, name: str) -> None:
+    row = db.query(LayoutDataRow).filter(LayoutDataRow.id == 1).one()
+    row.active_profile = name
+    db.commit()
+
+
 # -- Module instance config (lives inside the active layout profile) --
 
 def get_instance_config(db: Session, module_id: str, instance_id: str) -> Optional[Dict]:

@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { fetchLayout, saveLayout } from '../api/config';
+import { fetchLayout, saveLayout, setActiveProfile } from '../api/config';
 import { useAppStore } from '../store/appStore';
 import type { LayoutData } from '../types';
 
@@ -13,6 +13,7 @@ interface UseLayoutResult {
   error: Error | null;
   persistLayout: (layout: LayoutData) => Promise<void>;
   switchProfile: (name: string) => Promise<void>;
+  refreshLayout: () => Promise<void>;
 }
 
 export function useLayout(): UseLayoutResult {
@@ -43,9 +44,27 @@ export function useLayout(): UseLayoutResult {
 
   const switchProfile = useCallback(async (name: string) => {
     if (!layout) return;
+    if (!(name in layout.layouts)) {
+      console.error('[useLayout] Cannot switch to profile "%s": not found in layouts', name);
+      return;
+    }
+    try {
+      await setActiveProfile(name);
+    } catch (err) {
+      console.error('[useLayout] Failed to persist active profile:', err);
+    }
     const updated: LayoutData = { ...layout, activeProfile: name };
-    await persistLayout(updated);
-  }, [layout, persistLayout]);
+    setLayout(updated);
+  }, [layout, setLayout]);
 
-  return { layout, isLoading, error, persistLayout, switchProfile };
+  const refreshLayout = useCallback(async () => {
+    try {
+      const data = await fetchLayout();
+      setLayout(data);
+    } catch (err) {
+      console.error('[useLayout] Failed to refresh layout:', err);
+    }
+  }, [setLayout]);
+
+  return { layout, isLoading, error, persistLayout, switchProfile, refreshLayout };
 }
