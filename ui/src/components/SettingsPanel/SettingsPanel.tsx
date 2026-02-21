@@ -11,6 +11,8 @@ import { fetchProfiles, createProfile, deleteProfile } from '../../api/config';
 import { applyTheme } from '../../utils/theme';
 import styles from './SettingsPanel.module.css';
 
+const PROFILE_NAME_RE = /^[a-zA-Z0-9_-]+$/;
+
 const THEMES = [
   { id: 'dark', label: 'Dark' },
   { id: 'light', label: 'Light' },
@@ -28,6 +30,7 @@ const SettingsPanel: React.FC = () => {
   const [profiles, setProfiles] = useState<string[]>([]);
   const [profilesLoading, setProfilesLoading] = useState(false);
   const [newProfileName, setNewProfileName] = useState('');
+  const [profileNameError, setProfileNameError] = useState('');
   const [creating, setCreating] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -37,7 +40,10 @@ const SettingsPanel: React.FC = () => {
     setProfilesLoading(true);
     fetchProfiles()
       .then(setProfiles)
-      .catch(() => setProfiles([]))
+      .catch((error) => {
+        console.error('[SettingsPanel] Failed to fetch profiles:', error);
+        setProfiles([]);
+      })
       .finally(() => setProfilesLoading(false));
   }, [isSettingsPanelOpen, activeTab]);
 
@@ -77,6 +83,11 @@ const SettingsPanel: React.FC = () => {
   const handleCreateProfile = async () => {
     const name = newProfileName.trim();
     if (!name) return;
+    if (!PROFILE_NAME_RE.test(name)) {
+      setProfileNameError('Only letters, numbers, hyphens and underscores allowed');
+      return;
+    }
+    setProfileNameError('');
     setCreating(true);
     try {
       await createProfile(name, layout?.activeProfile ?? 'default');
@@ -210,7 +221,7 @@ const SettingsPanel: React.FC = () => {
                   className={styles.textInput}
                   placeholder="Profile name…"
                   value={newProfileName}
-                  onChange={(e) => setNewProfileName(e.target.value)}
+                  onChange={(e) => { setNewProfileName(e.target.value); setProfileNameError(''); }}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleCreateProfile(); }}
                   maxLength={40}
                 />
@@ -222,9 +233,13 @@ const SettingsPanel: React.FC = () => {
                   {creating ? '…' : 'Create'}
                 </button>
               </div>
-              <div className={styles.hint}>
-                New profiles start as a copy of the current profile.
-              </div>
+              {profileNameError ? (
+                <div className={styles.hint} style={{ color: '#ef5350' }}>{profileNameError}</div>
+              ) : (
+                <div className={styles.hint}>
+                  New profiles start as a copy of the current profile.
+                </div>
+              )}
             </div>
           )}
 
