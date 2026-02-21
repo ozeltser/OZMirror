@@ -13,6 +13,7 @@ const WIDGET_MAP: Record<string, React.LazyExoticComponent<React.ComponentType<W
   clock: lazy(() => import('../../widgets/ClockWidget')),
   system_stats: lazy(() => import('../../widgets/SystemStatsWidget')),
   sticky_notes: lazy(() => import('../../widgets/StickyNotesWidget')),
+  calendar: lazy(() => import('../../widgets/CalendarWidget')),
 };
 
 interface WidgetProps {
