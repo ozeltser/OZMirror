@@ -83,8 +83,8 @@ const SettingsPanel: React.FC = () => {
       const updated = await fetchProfiles();
       setProfiles(updated);
       setNewProfileName('');
-    } catch {
-      // ignore — profile may already exist
+    } catch (error) {
+      console.error('[SettingsPanel] Failed to create profile:', error);
     } finally {
       setCreating(false);
     }
@@ -94,8 +94,8 @@ const SettingsPanel: React.FC = () => {
     try {
       await deleteProfile(name);
       setProfiles((prev) => prev.filter((p) => p !== name));
-    } catch {
-      // ignore
+    } catch (error) {
+      console.error('[SettingsPanel] Failed to delete profile:', error);
     }
   };
 

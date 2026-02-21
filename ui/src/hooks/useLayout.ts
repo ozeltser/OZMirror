@@ -2,7 +2,7 @@
  * Hook for loading and saving the layout from/to the Config Service.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { fetchLayout, saveLayout } from '../api/config';
 import { useAppStore } from '../store/appStore';
 import type { LayoutData } from '../types';
@@ -32,20 +32,20 @@ export function useLayout(): UseLayoutResult {
       });
   }, [setLayout]);
 
-  const persistLayout = async (updatedLayout: LayoutData) => {
+  const persistLayout = useCallback(async (updatedLayout: LayoutData) => {
     setLayout(updatedLayout);
     try {
       await saveLayout(updatedLayout);
     } catch (err) {
       console.error('[useLayout] Failed to save layout:', err);
     }
-  };
+  }, [setLayout]);
 
-  const switchProfile = async (name: string) => {
+  const switchProfile = useCallback(async (name: string) => {
     if (!layout) return;
     const updated: LayoutData = { ...layout, activeProfile: name };
     await persistLayout(updated);
-  };
+  }, [layout, persistLayout]);
 
   return { layout, isLoading, error, persistLayout, switchProfile };
 }
