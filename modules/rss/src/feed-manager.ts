@@ -84,7 +84,25 @@ export async function invalidateCache(
 // Internal helpers
 // ---------------------------------------------------------------------------
 
+const PRIVATE_HOST_RE = /^(localhost|127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.|0\.0\.0\.0|::1$)/;
+
+function validateFeedUrl(feedUrl: string): void {
+  let parsed: URL;
+  try {
+    parsed = new URL(feedUrl);
+  } catch {
+    throw new Error('Invalid feed URL');
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error('Feed URL must use http or https');
+  }
+  if (PRIVATE_HOST_RE.test(parsed.hostname.toLowerCase())) {
+    throw new Error('Feed URL targets a private or reserved address');
+  }
+}
+
 async function fetchAndParse(feedUrl: string, maxItems: number): Promise<FeedData> {
+  validateFeedUrl(feedUrl);
   let feed: Awaited<ReturnType<typeof parser.parseURL>>;
   try {
     feed = await parser.parseURL(feedUrl);

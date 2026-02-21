@@ -24,10 +24,16 @@ let publisher: RedisClientType | null = null;
 let cacheClient: RedisClientType | null = null;
 let intervalHandle: ReturnType<typeof setTimeout> | null = null;
 
+const MAX_INSTANCES = 50;
+
 // Per-instance config map; entries carry a lastSeenAt timestamp for TTL pruning
 const instanceConfigs = new Map<string, { config: RssConfig; lastSeenAt: number }>();
 
 export function setInstanceConfig(instanceId: string, config: RssConfig): void {
+  if (!instanceConfigs.has(instanceId) && instanceConfigs.size >= MAX_INSTANCES) {
+    console.warn(`[redis-client] Instance cap (${MAX_INSTANCES}) reached; ignoring ${instanceId}`);
+    return;
+  }
   instanceConfigs.set(instanceId, { config, lastSeenAt: Date.now() });
 }
 
@@ -99,7 +105,8 @@ export function startPublishing(): void {
     intervalHandle = setTimeout(tick, REFRESH_INTERVAL_MS);
   };
 
-  intervalHandle = setTimeout(tick, REFRESH_INTERVAL_MS);
+  // Fire immediately so widgets have data on first load, then repeat via setTimeout in tick()
+  void tick();
 
   console.log(
     `[redis-client] Publishing to ${CHANNEL} every ${REFRESH_INTERVAL_MS / 60_000} min`
