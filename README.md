@@ -4,23 +4,25 @@ A distributed, microservices-based smart display application inspired by MagicMi
 
 ## Features
 
-- 🕐 **6 Bundled Modules**: Clock, Weather, Calendar, RSS, System Stats, Sticky Notes
-- 🎨 **Drag & Drop Layout**: Customize your display with touch or mouse
-- ⚡ **Real-time Updates**: WebSocket-powered live data
-- 🎭 **Themeable UI**: Dark, Light, AMOLED themes + custom themes
-- 🥧 **Raspberry Pi Ready**: Optimized for Pi 4 (4GB+)
-- 🐳 **Docker-based**: Each module runs in its own container
+- **6 Bundled Modules**: Clock, Weather, Calendar, RSS, System Stats, Sticky Notes
+- **Drag & Drop Layout**: Customize your display with touch or mouse
+- **Real-time Updates**: WebSocket-powered live data via Redis pub/sub
+- **Themeable UI**: Dark, Light, AMOLED themes + custom themes
+- **Layout Profiles**: Save and switch between named layouts (e.g., "Morning", "Night")
+- **Per-Module Settings**: Configure each widget instance through auto-generated forms
+- **Raspberry Pi Ready**: Optimized for Pi 4 (4GB+)
+- **Docker-based**: Each module runs in its own container
 
 ## Architecture
 
 ```
-Browser → Nginx → React UI
-                ↓
-         Config Service
-                ↓
-         Redis Pub/Sub ← → Module Containers
-                ↓
-         WebSocket Bridge
+Browser --> Nginx API Gateway --> React SPA (UI)
+                               --> /api/config/* --> Config Service (FastAPI + MySQL)
+                               --> /ws --> WebSocket Bridge (Socket.IO + Redis)
+                               --> /api/modules/* --> Module Containers (Node.js)
+
+Module Containers --> Redis Pub/Sub --> WebSocket Bridge --> Browser
+Module Containers --> Config Service (registration on startup)
 ```
 
 ## Quick Start
@@ -33,7 +35,7 @@ Browser → Nginx → React UI
 
 ---
 
-### Option A — Local / Development (recommended for first run)
+### Option A -- Local / Development (recommended for first run)
 
 No SSL certificates required. Uses HTTP with hot-reload.
 
@@ -44,9 +46,9 @@ No SSL certificates required. Uses HTTP with hot-reload.
    cp .env.example .env
    ```
    Open `.env` and set at minimum:
-   - `REDIS_PASSWORD`, `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD` — choose any secure passwords
-   - `API_KEY` — a random 32-char string (e.g. `openssl rand -hex 16`)
-   - `ALLOWED_ORIGINS` / `ALLOWED_CORS_ORIGINS` — add any domain/IP you'll use to access the UI (see note below)
+   - `REDIS_PASSWORD`, `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD` -- choose any secure passwords
+   - `API_KEY` -- a random 32-char string (e.g. `openssl rand -hex 16`)
+   - `ALLOWED_ORIGINS` / `ALLOWED_CORS_ORIGINS` -- add any domain/IP you'll use to access the UI (see note below)
    - Optional: `WEATHER_API_KEY` and Google Calendar keys for those modules
 
 2. **Start in dev mode**
@@ -61,12 +63,12 @@ No SSL certificates required. Uses HTTP with hot-reload.
 
 ---
 
-### Option B — Production (HTTPS)
+### Option B -- Production (HTTPS)
 
 Same `.env` steps as above, then provide SSL certificates **before** starting:
 
 ```bash
-# Option 1: Self-signed cert (local/testing only — browser will warn)
+# Option 1: Self-signed cert (local/testing only -- browser will warn)
 openssl req -x509 -newkey rsa:4096 \
   -keyout nginx/ssl/key.pem \
   -out nginx/ssl/cert.pem \
@@ -85,7 +87,7 @@ make deploy
 
 Access at `https://localhost` (HTTP automatically redirects to HTTPS).
 
-> Cert files are gitignored — never commit them to the repository.
+> Cert files are gitignored -- never commit them to the repository.
 
 ---
 
@@ -115,9 +117,9 @@ Then run `make deploy` to rebuild and restart with the new config.
 
 ---
 
-## Makefile — deployment workflow
+## Makefile -- deployment workflow
 
-A `Makefile` is included so you never have to remember Docker flags. Always use `make deploy` (not plain `docker compose up`) after pulling new code — it rebuilds the images so code changes actually take effect.
+A `Makefile` is included so you never have to remember Docker flags. Always use `make deploy` (not plain `docker compose up`) after pulling new code -- it rebuilds the images so code changes actually take effect.
 
 | Command | What it does |
 |---------|-------------|
@@ -137,16 +139,18 @@ A `Makefile` is included so you never have to remember Docker flags. Always use 
 
 ## Documentation
 
-- [📐 Architecture](docs/ARCHITECTURE.md)
-- [🔧 Module Development Guide](docs/MODULE_DEVELOPMENT.md)
-- [📡 API Reference](docs/API.md)
-- [🚀 Deployment Guide](docs/DEPLOYMENT.md)
-- [📋 Implementation Plans](docs/plans/README.md)
+- [Architecture Overview](docs/ARCHITECTURE.md)
+- [Module Development Guide](docs/MODULE_DEVELOPMENT.md)
+- [API Reference](docs/API.md)
+- [Deployment Guide](docs/DEPLOYMENT.md)
+- [Redis Channels](docs/REDIS_CHANNELS.md)
+- [Security Requirements](docs/SECURITY_REQUIREMENTS.md)
+- [Implementation Plans](docs/plans/README.md)
 
 ## Project Status
 
-**Current Phase**: Phase 0 - Bootstrap
-**Version**: 0.1.0-dev
+**Current Phase**: v1 Development
+**Version**: 0.9.0
 
 See [Implementation Plans](docs/plans/README.md) for detailed roadmap.
 
@@ -163,4 +167,4 @@ GPL-3.0 License - See LICENSE file
 
 ## Credits
 
-Inspired by [MagicMirror²](https://magicmirror.builders/)
+Inspired by [MagicMirror2](https://magicmirror.builders/)
