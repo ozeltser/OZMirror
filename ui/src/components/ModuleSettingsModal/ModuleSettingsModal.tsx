@@ -200,6 +200,9 @@ const ModuleSettingsModal: React.FC<Props> = ({ instanceId, moduleId, onClose })
       }
 
       if (prop.type === 'number') {
+        // Use `key in formValues` so an explicitly-cleared field (null) stays
+        // empty rather than snapping back to the schema default.
+        const numValue = key in formValues ? formValues[key] : (prop.default ?? '');
         return (
           <div className={styles.field} key={key}>
             <label htmlFor={`field-${key}`} className={styles.label}>
@@ -209,9 +212,9 @@ const ModuleSettingsModal: React.FC<Props> = ({ instanceId, moduleId, onClose })
               id={`field-${key}`}
               type="number"
               className={styles.input}
-              value={value as number}
+              value={numValue === null || numValue === undefined ? '' : String(numValue)}
               placeholder={prop.default !== undefined ? String(prop.default) : undefined}
-              onChange={(e) => handleFieldChange(key, e.target.value === '' ? '' : Number(e.target.value))}
+              onChange={(e) => handleFieldChange(key, e.target.value === '' ? null : Number(e.target.value))}
             />
           </div>
         );
