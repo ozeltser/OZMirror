@@ -16,6 +16,20 @@ const ALLOWED_CORS_ORIGINS: string[] = (process.env.ALLOWED_CORS_ORIGINS || 'htt
   .map((o) => o.trim())
   .filter(Boolean);
 
+// RFC-1918 private IPv4 ranges — allow LAN clients without explicit config.
+const PRIVATE_IP_RE =
+  /^(192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|127\.\d{1,3}\.\d{1,3}\.\d{1,3}|localhost)$/;
+
+function isAllowedOrigin(origin: string): boolean {
+  if (ALLOWED_CORS_ORIGINS.includes(origin)) return true;
+  try {
+    const { hostname } = new URL(origin);
+    return PRIVATE_IP_RE.test(hostname);
+  } catch {
+    return false;
+  }
+}
+
 // Both subscribe and publish are restricted to module-owned channels.
 // System/internal channels must not be readable or writable by browser clients.
 const ALLOWED_MODULE_CHANNELS =
@@ -35,7 +49,19 @@ const httpServer = createServer((req: IncomingMessage, res: ServerResponse) => {
 
 // ── Socket.io ──────────────────────────────────────────────────────────────
 const io = new SocketIOServer(httpServer, {
-  cors: { origin: ALLOWED_CORS_ORIGINS, methods: ['GET', 'POST'] },
+  path: '/ws',
+  cors: {
+    origin: (origin, callback) => {
+      // Allow requests with no Origin header (e.g. same-origin, curl, health checks)
+      if (!origin || isAllowedOrigin(origin)) {
+        callback(null, true);
+      } else {
+        logger.warn(`CORS rejected origin: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    methods: ['GET', 'POST'],
+  },
   transports: ['websocket', 'polling']
 });
 

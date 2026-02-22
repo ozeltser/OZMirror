@@ -17,7 +17,7 @@ import { applyTheme } from './utils/theme';
 import type { GridItem } from './types';
 
 const App: React.FC = () => {
-  const { layout, isLoading: layoutLoading, persistLayout } = useLayout();
+  const { layout, isLoading: layoutLoading, persistLayout, switchProfile } = useLayout();
   const { settings } = useConfig();
   const { isEditMode, toggleEditMode, setWsConnected, toggleSettingsPanel } = useAppStore();
 
@@ -78,6 +78,14 @@ const App: React.FC = () => {
     if (!settings) return;
     applyTheme(settings.theme);
   }, [settings]);
+
+  // Auto-recover when active profile is missing: fall back to "default"
+  useEffect(() => {
+    if (!layout) return;
+    if (!layout.layouts[layout.activeProfile] && layout.activeProfile !== 'default' && layout.layouts['default']) {
+      switchProfile('default');
+    }
+  }, [layout, switchProfile]);
 
   // Debounced layout persistence on drag/resize
   const handleLayoutChange = useCallback(
@@ -152,10 +160,15 @@ const App: React.FC = () => {
 
   const activeProfile = layout.layouts[layout.activeProfile];
   if (!activeProfile) {
+    const fallback = layout.layouts['default'];
     return (
-      <div style={{ padding: 24, color: '#ef5350' }}>
-        Active profile "{layout.activeProfile}" not found.
-      </div>
+      <>
+        <div style={{ padding: 24, color: '#ef5350' }}>
+          Active profile "{layout.activeProfile}" not found.
+          {fallback ? ' Reverting to default profile…' : ' Open Settings (Ctrl+,) to select a profile.'}
+        </div>
+        <SettingsPanel />
+      </>
     );
   }
 
