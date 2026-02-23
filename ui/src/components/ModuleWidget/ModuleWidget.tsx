@@ -4,9 +4,10 @@
  * and shows edit-mode controls when in edit mode.
  */
 
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useState } from 'react';
 import styles from './ModuleWidget.module.css';
 import type { ModuleInstanceConfig } from '../../types';
+import ModuleSettingsModal from '../ModuleSettingsModal/ModuleSettingsModal';
 
 // Lazy-load widget components by moduleId
 const WIDGET_MAP: Record<string, React.LazyExoticComponent<React.ComponentType<WidgetProps>>> = {
@@ -39,6 +40,7 @@ const ModuleWidget: React.FC<ModuleWidgetProps> = ({
 }) => {
   const { moduleId, config } = moduleConfig;
   const Widget = WIDGET_MAP[moduleId];
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   return (
     <div className={`${styles.wrapper} ${isEditMode ? styles.editMode : ''}`}>
@@ -56,6 +58,13 @@ const ModuleWidget: React.FC<ModuleWidgetProps> = ({
         <>
           <div className={`${styles.dragHandle} drag-handle`} title="Drag to reposition" />
           <div className={styles.editOverlay}>
+            <button
+              className={styles.editBtn}
+              onClick={() => setIsSettingsOpen(true)}
+              title="Settings"
+            >
+              ⚙
+            </button>
             {onRemove && (
               <button className={styles.editBtn} onClick={() => onRemove(instanceId)} title="Remove">
                 ✕
@@ -64,6 +73,14 @@ const ModuleWidget: React.FC<ModuleWidgetProps> = ({
           </div>
           <div className={styles.moduleLabel}>{moduleId}</div>
         </>
+      )}
+
+      {isSettingsOpen && (
+        <ModuleSettingsModal
+          instanceId={instanceId}
+          moduleId={moduleId}
+          onClose={() => setIsSettingsOpen(false)}
+        />
       )}
     </div>
   );
