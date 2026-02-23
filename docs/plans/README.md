@@ -33,10 +33,10 @@ Plan 08 covers the remaining work to bring OzMirror to a complete v1 release. It
 | Phase | Scope | Status |
 |-------|-------|--------|
 | 1 | Per-Module Settings UI | Done |
-| 2 | Testing | Done |
-| 3 | Touch/Gesture Support & Cursor Auto-Hide | Done |
-| 4 | Responsive Grid & Layout Polish | Done |
-| 5 | Deployment Scripts & Docker Hardening | Done |
+| 2 | Testing | Not Started |
+| 3 | Touch/Gesture Support & Cursor Auto-Hide | Not Started |
+| 4 | Responsive Grid & Layout Polish | Partial |
+| 5 | Deployment Scripts & Docker Hardening | Not Started |
 | 6 | Documentation & Cleanup | In Progress |
 
 ## Implementation Order
