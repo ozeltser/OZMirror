@@ -49,7 +49,7 @@ vi.mock('../manifest', () => ({
 
 const MOCK_EVENTS = [
   {
-    id: 'event1',
+    uid: 'event1',
     title: 'Team Standup',
     start: '2026-02-25T09:00:00Z',
     end: '2026-02-25T09:30:00Z',
@@ -62,7 +62,7 @@ const MOCK_EVENTS = [
 vi.mock('../calendar-manager', () => ({
   getEvents: vi.fn().mockResolvedValue([
     {
-      id: 'event1',
+      uid: 'event1',
       title: 'Team Standup',
       start: '2026-02-25T09:00:00Z',
       end: '2026-02-25T09:30:00Z',

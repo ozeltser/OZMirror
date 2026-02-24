@@ -141,7 +141,7 @@ describe('GET /manifest', () => {
 });
 
 describe('GET /notes (requires auth)', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => { vi.clearAllMocks(); });
 
   it('returns 401 without API key', async () => {
     const res = await request(app).get('/notes?instanceId=sticky_01');
