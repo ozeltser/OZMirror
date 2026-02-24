@@ -113,6 +113,17 @@ class WebSocketClient {
     }
   }
 
+  /**
+   * Disconnect and clear all internal handler state.
+   * Intended for use in test afterEach hooks to prevent state leaking
+   * between tests when a test fails before calling its unsubscribe function.
+   */
+  reset(): void {
+    this.disconnect();
+    this.handlers.clear();
+    this.statusHandlers.clear();
+  }
+
   isConnected(): boolean {
     return this.connected;
   }

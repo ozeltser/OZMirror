@@ -32,7 +32,8 @@ export function formatTime(date: Date, format: string, timezone: string): string
   const hour24 = partsMap['hour'] ?? '00';
   const minute = partsMap['minute'] ?? '00';
   const second = partsMap['second'] ?? '00';
-  const hourInt = parseInt(hour24, 10);
+  // Intl.DateTimeFormat can return "24" for midnight on some platforms; normalise to 0.
+  const hourInt = parseInt(hour24, 10) % 24;
   const hour12Raw = hourInt % 12 || 12;
   const hour12 = String(hour12Raw).padStart(2, '0');
   const ampm = hourInt < 12 ? 'AM' : 'PM';
