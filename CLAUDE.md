@@ -1,5 +1,11 @@
 # OZMirror — Claude Code Guidelines
 
+## Session Start
+
+At the beginning of every new session:
+1. Run `git fetch origin && git checkout main && git pull origin main` to ensure you are working from the latest `main`
+2. Read the key source files to load the codebase into context before making any changes — at minimum: `CLAUDE.md`, `frontend/src/`, `backend/`, and any files directly relevant to the task
+
 ## Branching & PRs
 
 - **Never commit directly to `main`**
