@@ -45,7 +45,7 @@ function simulateMessage(channel: string, payload: unknown) {
 
 describe('WebSocketClient — connect', () => {
   afterEach(() => {
-    wsClient.disconnect();
+    wsClient.reset();
     vi.clearAllMocks();
     // Clear handlers map so tests don't bleed.
     Object.keys(socketEventHandlers).forEach((k) => delete socketEventHandlers[k]);
@@ -78,7 +78,7 @@ describe('WebSocketClient — connection status', () => {
   });
 
   afterEach(() => {
-    wsClient.disconnect();
+    wsClient.reset();
     vi.clearAllMocks();
     Object.keys(socketEventHandlers).forEach((k) => delete socketEventHandlers[k]);
   });
@@ -133,7 +133,7 @@ describe('WebSocketClient — subscribe / unsubscribe', () => {
   });
 
   afterEach(() => {
-    wsClient.disconnect();
+    wsClient.reset();
     vi.clearAllMocks();
     Object.keys(socketEventHandlers).forEach((k) => delete socketEventHandlers[k]);
   });
@@ -191,6 +191,12 @@ describe('WebSocketClient — subscribe / unsubscribe', () => {
 
 describe('WebSocketClient — disconnect', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
+    Object.keys(socketEventHandlers).forEach((k) => delete socketEventHandlers[k]);
+  });
+
+  afterEach(() => {
+    wsClient.reset();
     vi.clearAllMocks();
     Object.keys(socketEventHandlers).forEach((k) => delete socketEventHandlers[k]);
   });
