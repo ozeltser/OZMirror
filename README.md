@@ -5,13 +5,17 @@ A distributed, microservices-based smart display application inspired by MagicMi
 ## Features
 
 - **6 Bundled Modules**: Clock, Weather, Calendar, RSS, System Stats, Sticky Notes
-- **Drag & Drop Layout**: Customize your display with touch or mouse
+- **Drag & Drop Layout**: Customize your display with touch or mouse; responsive breakpoints (lg/md/sm)
+- **Layout Undo**: Ctrl+Z restores the previous grid arrangement
 - **Real-time Updates**: WebSocket-powered live data via Redis pub/sub
 - **Themeable UI**: Dark, Light, AMOLED themes + custom themes
 - **Layout Profiles**: Save and switch between named layouts (e.g., "Morning", "Night")
-- **Per-Module Settings**: Configure each widget instance through auto-generated forms
-- **Raspberry Pi Ready**: Optimized for Pi 4 (4GB+)
-- **Docker-based**: Each module runs in its own container
+- **Per-Module Settings**: Configure each widget instance through auto-generated JSON Schema-driven forms
+- **Config Validation API**: `POST /api/config/validate` validates module configs against their schema before saving
+- **Touch & Gesture**: Long-press to enter edit mode; two-finger swipe down to open Settings
+- **Kiosk Mode**: Cursor auto-hides after configurable inactivity timeout
+- **Raspberry Pi Ready**: Optimized for Pi 4 (4GB+); deploy scripts in `scripts/`
+- **Docker-based**: Each module runs in its own container with memory/CPU resource limits
 
 ## Architecture
 
@@ -69,11 +73,7 @@ Same `.env` steps as above, then provide SSL certificates **before** starting:
 
 ```bash
 # Option 1: Self-signed cert (local/testing only -- browser will warn)
-openssl req -x509 -newkey rsa:4096 \
-  -keyout nginx/ssl/key.pem \
-  -out nginx/ssl/cert.pem \
-  -days 365 -nodes \
-  -subj "/CN=localhost"
+bash scripts/generate-ssl.sh
 
 # Option 2: Copy an existing cert/key pair (e.g. from Let's Encrypt)
 cp /path/to/fullchain.pem nginx/ssl/cert.pem
@@ -137,6 +137,17 @@ A `Makefile` is included so you never have to remember Docker flags. Always use 
 
 > **`make` not found?** On Debian/Ubuntu: `sudo apt install make`. On macOS it ships with Xcode Command Line Tools (`xcode-select --install`).
 
+## Raspberry Pi Setup Scripts
+
+The `scripts/` directory contains helpers for Pi deployment:
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/setup-pi.sh` | Install Docker, clone repo, generate `.env` with random secrets |
+| `scripts/start-kiosk.sh` | Launch Chromium in kiosk mode with screen blanking disabled |
+| `scripts/backup-config.sh` | Back up MySQL, SQLite data, and `.env` to a timestamped tarball |
+| `scripts/generate-ssl.sh` | Generate a self-signed TLS certificate for `nginx/ssl/` |
+
 ## Documentation
 
 - [Architecture Overview](docs/ARCHITECTURE.md)
@@ -149,8 +160,8 @@ A `Makefile` is included so you never have to remember Docker flags. Always use 
 
 ## Project Status
 
-**Current Phase**: v1 Development
-**Version**: 0.9.0
+**Current Phase**: v1 Complete
+**Version**: 1.0.0
 
 See [Implementation Plans](docs/plans/README.md) for detailed roadmap.
 

@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 from app import __version__
 from app.database import SessionLocal, create_tables, seed_defaults
 from app.models import HealthResponse
-from app.routes import layout, modules, settings
+from app.routes import layout, modules, settings, validate
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -95,6 +95,7 @@ async def _unhandled_exception_handler(request: Request, exc: Exception) -> JSON
 app.include_router(layout.router)
 app.include_router(modules.router)
 app.include_router(settings.router)
+app.include_router(validate.router)
 
 # ---------------------------------------------------------------------------
 # Health and root

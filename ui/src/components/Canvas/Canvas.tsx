@@ -1,15 +1,20 @@
 /**
  * Canvas — the main display area.
- * Uses react-grid-layout for drag-and-drop module placement.
+ * Uses react-grid-layout ResponsiveGridLayout for drag-and-drop module placement
+ * with breakpoint support (lg/md/sm).
  */
 
 import React, { useCallback } from 'react';
-import GridLayout, { Layout } from 'react-grid-layout';
+import { Responsive as ResponsiveGridLayout } from 'react-grid-layout';
+import type { Layout, Layouts } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import ModuleWidget from '../ModuleWidget/ModuleWidget';
 import styles from './Canvas.module.css';
 import type { LayoutProfile, GridItem } from '../../types';
+
+const BREAKPOINTS = { lg: 1200, md: 996, sm: 768 };
+const COLS = { lg: 24, md: 16, sm: 8 };
 
 interface CanvasProps {
   profile: LayoutProfile;
@@ -40,9 +45,12 @@ const Canvas: React.FC<CanvasProps> = ({
     isResizable: isEditMode,
   }));
 
+  // Use the same layout for all breakpoints; react-grid-layout reflows items automatically.
+  const layouts: Layouts = { lg: layout, md: layout, sm: layout };
+
   const handleLayoutChange = useCallback(
-    (newLayout: Layout[]) => {
-      const grid: GridItem[] = newLayout.map((l) => ({
+    (currentLayout: Layout[]) => {
+      const grid: GridItem[] = currentLayout.map((l) => ({
         i: l.i,
         x: l.x,
         y: l.y,
@@ -56,9 +64,10 @@ const Canvas: React.FC<CanvasProps> = ({
 
   return (
     <div className={styles.canvas}>
-      <GridLayout
-        layout={layout}
-        cols={24}
+      <ResponsiveGridLayout
+        layouts={layouts}
+        breakpoints={BREAKPOINTS}
+        cols={COLS}
         rowHeight={40}
         width={width}
         margin={[8, 8]}
@@ -83,7 +92,7 @@ const Canvas: React.FC<CanvasProps> = ({
             </div>
           );
         })}
-      </GridLayout>
+      </ResponsiveGridLayout>
     </div>
   );
 };
