@@ -24,7 +24,7 @@ Each plan below expands on a specific component from the master plan:
 | 4 | [Simple Modules](04-simple-modules.md) | 3 | 13-14 | Done |
 | 5 | [API-Dependent Modules](05-api-modules.md) | 4 | 15-17 | Done |
 | 6 | [Deployment & Testing](07-deployment-testing.md) | 7-8 | 23-27 | Done |
-| 8 | [V1 Completion](08-v1-completion.md) | 1-6 | -- | In Progress |
+| 8 | [V1 Completion](08-v1-completion.md) | 1-6 | -- | Done |
 
 ### V1 Completion Plan
 
@@ -33,11 +33,11 @@ Plan 08 covers the remaining work to bring OzMirror to a complete v1 release. It
 | Phase | Scope | Status |
 |-------|-------|--------|
 | 1 | Per-Module Settings UI | Done |
-| 2 | Testing | Not Started |
-| 3 | Touch/Gesture Support & Cursor Auto-Hide | Not Started |
-| 4 | Responsive Grid & Layout Polish | Partial |
-| 5 | Deployment Scripts & Docker Hardening | Not Started |
-| 6 | Documentation & Cleanup | In Progress |
+| 2 | Testing | Done |
+| 3 | Touch/Gesture Support & Cursor Auto-Hide | Done |
+| 4 | Responsive Grid & Layout Polish | Done |
+| 5 | Deployment Scripts & Docker Hardening | Done |
+| 6 | Documentation & Cleanup | Done |
 
 ## Implementation Order
 

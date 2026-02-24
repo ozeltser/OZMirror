@@ -16,7 +16,6 @@ const MODULE_ICONS: Record<string, string> = {
   calendar: '📅',
   rss: '📰',
   system_stats: '📊',
-  now_playing: '🎵',
   sticky_notes: '📝',
 };
 

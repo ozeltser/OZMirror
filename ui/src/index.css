@@ -32,3 +32,9 @@ body {
 #root {
   height: 100%;
 }
+
+/* Kiosk mode: hide cursor after inactivity timeout */
+body.cursor-hidden,
+body.cursor-hidden * {
+  cursor: none !important;
+}

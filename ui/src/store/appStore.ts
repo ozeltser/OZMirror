@@ -4,7 +4,7 @@
  */
 
 import { create } from 'zustand';
-import type { LayoutData, GlobalSettings, RegisteredModule } from '../types';
+import type { LayoutData, GlobalSettings, RegisteredModule, GridItem } from '../types';
 
 interface AppState {
   // Edit mode
@@ -15,6 +15,11 @@ interface AppState {
   // Layout
   layout: LayoutData | null;
   setLayout: (layout: LayoutData) => void;
+
+  // Layout undo history (max 20 entries)
+  layoutHistory: GridItem[][];
+  pushLayoutHistory: (grid: GridItem[]) => void;
+  popLayoutHistory: () => GridItem[] | undefined;
 
   // Registered modules
   modules: RegisteredModule[];
@@ -38,13 +43,24 @@ interface AppState {
   setWsConnected: (connected: boolean) => void;
 }
 
-export const useAppStore = create<AppState>((set) => ({
+export const useAppStore = create<AppState>((set, get) => ({
   isEditMode: false,
   toggleEditMode: () => set((s) => ({ isEditMode: !s.isEditMode })),
   setEditMode: (enabled) => set({ isEditMode: enabled }),
 
   layout: null,
   setLayout: (layout) => set({ layout }),
+
+  layoutHistory: [],
+  pushLayoutHistory: (grid) =>
+    set((s) => ({ layoutHistory: [...s.layoutHistory.slice(-19), grid] })),
+  popLayoutHistory: () => {
+    const history = get().layoutHistory;
+    if (history.length === 0) return undefined;
+    const prev = history[history.length - 1];
+    set({ layoutHistory: history.slice(0, -1) });
+    return prev;
+  },
 
   modules: [],
   setModules: (modules) => set({ modules }),

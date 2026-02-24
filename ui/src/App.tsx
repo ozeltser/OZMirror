@@ -13,13 +13,14 @@ import { useConfig } from './hooks/useConfig';
 import { useAppStore } from './store/appStore';
 import { wsClient } from './core/WebSocketClient';
 import { inputHandler } from './core/InputHandler';
+import { GestureHandler } from './core/GestureHandler';
 import { applyTheme } from './utils/theme';
 import type { GridItem } from './types';
 
 const App: React.FC = () => {
   const { layout, isLoading: layoutLoading, persistLayout, switchProfile } = useLayout();
   const { settings } = useConfig();
-  const { isEditMode, toggleEditMode, setWsConnected, toggleSettingsPanel } = useAppStore();
+  const { isEditMode, toggleEditMode, setWsConnected, toggleSettingsPanel, pushLayoutHistory } = useAppStore();
 
   const [canvasWidth, setCanvasWidth] = useState(window.innerWidth);
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -63,15 +64,67 @@ const App: React.FC = () => {
       const currentLayout = useAppStore.getState().layout;
       if (currentLayout) persistLayout(currentLayout);
     });
+    const removeCtrlZ = inputHandler.register('CTRL+Z', () => {
+      const { layout: currentLayout, popLayoutHistory } = useAppStore.getState();
+      const prev = popLayoutHistory();
+      if (!prev || !currentLayout) return;
+      const activeProfile = currentLayout.activeProfile;
+      const restoredLayout = {
+        ...currentLayout,
+        layouts: {
+          ...currentLayout.layouts,
+          [activeProfile]: {
+            ...currentLayout.layouts[activeProfile],
+            grid: prev,
+          },
+        },
+      };
+      persistLayout(restoredLayout);
+    });
     return () => {
       removeE();
       removeEsc();
       removeF();
       removeCtrlComma();
       removeCtrlS();
+      removeCtrlZ();
       inputHandler.destroy();
     };
   }, [toggleEditMode, toggleSettingsPanel, persistLayout]);
+
+  // Touch gesture handler (long press → edit mode, two-finger swipe down → settings)
+  useEffect(() => {
+    const handler = new GestureHandler(
+      () => useAppStore.getState().setEditMode(true),
+      () => useAppStore.getState().toggleSettingsPanel(),
+    );
+    handler.init();
+    return () => handler.destroy();
+  }, []);
+
+  // Cursor auto-hide in kiosk mode
+  useEffect(() => {
+    if (!settings?.kiosk) {
+      document.body.classList.remove('cursor-hidden');
+      return;
+    }
+    const timeout = settings.cursorTimeout ?? 3000;
+    let timer: ReturnType<typeof setTimeout>;
+    const onActivity = () => {
+      document.body.classList.remove('cursor-hidden');
+      clearTimeout(timer);
+      timer = setTimeout(() => document.body.classList.add('cursor-hidden'), timeout);
+    };
+    document.addEventListener('mousemove', onActivity);
+    document.addEventListener('touchstart', onActivity, { passive: true });
+    timer = setTimeout(() => document.body.classList.add('cursor-hidden'), timeout);
+    return () => {
+      document.removeEventListener('mousemove', onActivity);
+      document.removeEventListener('touchstart', onActivity);
+      clearTimeout(timer);
+      document.body.classList.remove('cursor-hidden');
+    };
+  }, [settings?.kiosk, settings?.cursorTimeout]);
 
   // Apply theme from settings
   useEffect(() => {
@@ -92,6 +145,8 @@ const App: React.FC = () => {
     (grid: GridItem[]) => {
       if (!layout) return;
       const activeProfile = layout.activeProfile;
+      // Push current grid to undo history before overwriting it
+      pushLayoutHistory(layout.layouts[activeProfile].grid);
       const updatedLayout = {
         ...layout,
         layouts: {
@@ -108,7 +163,7 @@ const App: React.FC = () => {
         persistLayout(updatedLayout);
       }, 800);
     },
-    [layout, persistLayout]
+    [layout, persistLayout, pushLayoutHistory]
   );
 
   const handleRemoveModule = useCallback(
