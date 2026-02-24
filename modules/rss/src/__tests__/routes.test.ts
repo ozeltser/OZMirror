@@ -47,8 +47,8 @@ vi.mock('../feed-manager', () => ({
   getFeed: vi.fn().mockResolvedValue({
     feedTitle: 'Test Feed',
     items: [
-      { title: 'Article 1', link: 'https://example.com/1', pubDate: '2026-02-24', description: 'Desc 1' },
-      { title: 'Article 2', link: 'https://example.com/2', pubDate: '2026-02-23', description: 'Desc 2' },
+      { guid: 'https://example.com/1', title: 'Article 1', link: 'https://example.com/1', pubDate: '2026-02-24', description: 'Desc 1' },
+      { guid: 'https://example.com/2', title: 'Article 2', link: 'https://example.com/2', pubDate: '2026-02-23', description: 'Desc 2' },
     ],
     fetchedAt: 1234567890,
   }),
@@ -71,8 +71,8 @@ app.use('/', routes);
 const MOCK_FEED = {
   feedTitle: 'Test Feed',
   items: [
-    { title: 'Article 1', link: 'https://example.com/1', pubDate: '2026-02-24', description: 'Desc 1' },
-    { title: 'Article 2', link: 'https://example.com/2', pubDate: '2026-02-23', description: 'Desc 2' },
+    { guid: 'https://example.com/1', title: 'Article 1', link: 'https://example.com/1', pubDate: '2026-02-24', description: 'Desc 1' },
+    { guid: 'https://example.com/2', title: 'Article 2', link: 'https://example.com/2', pubDate: '2026-02-23', description: 'Desc 2' },
   ],
   fetchedAt: 1234567890,
 };

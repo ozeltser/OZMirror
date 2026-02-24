@@ -47,13 +47,14 @@ vi.mock('../manifest', () => ({
 vi.mock('../weather-manager', () => ({
   getWeather: vi.fn().mockResolvedValue({
     city: 'London',
-    temperature: 15,
-    description: 'Cloudy',
+    country: 'GB',
+    temp: 15,
+    feelsLike: 13,
     humidity: 80,
     windSpeed: 5,
-    feelsLike: 13,
+    condition: 'Clouds',
+    description: 'Cloudy',
     icon: '04d',
-    units: 'metric',
     fetchedAt: Date.now(),
   }),
   invalidateCache: vi.fn().mockResolvedValue(undefined),
@@ -122,13 +123,14 @@ describe('GET /data', () => {
     });
     vi.mocked(getWeather).mockResolvedValue({
       city: 'London',
-      temperature: 15,
-      description: 'Cloudy',
+      country: 'GB',
+      temp: 15,
+      feelsLike: 13,
       humidity: 80,
       windSpeed: 5,
-      feelsLike: 13,
+      condition: 'Clouds',
+      description: 'Cloudy',
       icon: '04d',
-      units: 'metric',
       fetchedAt: Date.now(),
     });
   });
