@@ -12,6 +12,7 @@ const CACHE_TTL_SECONDS = 900; // 15 minutes
 
 const parser = new Parser({
   timeout: 10_000,
+  maxRedirects: 0, // no redirects — prevent SSRF via redirect to internal host
   headers: { 'User-Agent': 'OzMirror/1.0 (rss module)' },
   customFields: {
     item: [['media:content', 'mediaContent', { keepArray: false }]],

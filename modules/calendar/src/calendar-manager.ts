@@ -94,7 +94,8 @@ const PRIVATE_HOST_RE = /^(localhost|127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-
 
 /**
  * Reject URLs that point at private/reserved addresses (SSRF prevention).
- * Mirrors the same validation in modules/rss/src/feed-manager.ts.
+ * Each module owns its own copy of this check because modules are isolated
+ * Docker containers with no shared source tree.
  */
 function validateICalUrl(icalUrl: string): void {
   let parsed: URL;
@@ -123,7 +124,7 @@ async function fetchAndParse(
   try {
     const response = await axios.get<string>(icalUrl, {
       timeout: 10_000,
-      maxRedirects: 5,
+      maxRedirects: 0, // no redirects — prevent SSRF via redirect to internal host
       responseType: 'text',
       headers: { 'User-Agent': 'OzMirror/1.0 (calendar module)' },
     });

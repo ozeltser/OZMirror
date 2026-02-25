@@ -13,7 +13,7 @@
  */
 
 import { createClient, RedisClientType } from 'redis';
-import { fetchInstanceConfig, DEFAULT_CONFIG } from './config-client';
+import { fetchInstanceConfig } from './config-client';
 import type { RssConfig } from './config-client';
 import { getFeed, invalidateCache } from './feed-manager';
 
@@ -67,13 +67,19 @@ export async function connectRedis(): Promise<void> {
   await subscriber.connect();
   await subscriber.subscribe(CONFIG_CHANGE_CHANNEL, async (message: string) => {
     try {
-      const { instanceId } = JSON.parse(message) as { instanceId: string };
+      const parsed = JSON.parse(message) as unknown;
+      const instanceId = (parsed as Record<string, unknown>)?.instanceId;
+      if (typeof instanceId !== 'string') {
+        console.warn('[redis-client] Config-change message missing instanceId, ignoring');
+        return;
+      }
 
       // 1. Drop stale cache
       await invalidateCache(instanceId, cacheClient);
 
       // 2. Fetch the newly-saved config from the Config Service
-      const config = await fetchInstanceConfig(instanceId).catch(() => DEFAULT_CONFIG);
+      // fetchInstanceConfig never rejects — it returns DEFAULT_CONFIG on error
+      const config = await fetchInstanceConfig(instanceId);
       setInstanceConfig(instanceId, config);
 
       // 3. Re-fetch feed with new config and push to browser via WebSocket bridge
