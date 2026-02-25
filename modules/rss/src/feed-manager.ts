@@ -165,7 +165,7 @@ async function validateFeedUrl(feedUrl: string): Promise<void> {
   // as well as domains that resolve to internal addresses.
   let address: string;
   try {
-    ({ address } = await lookup(hostname.replace(/^\[|\]$/g, '')));
+    ({ address } = await lookup(hostname.replace(/[\[\]]/g, '')));
   } catch {
     throw new Error('Could not resolve feed URL hostname');
   }
