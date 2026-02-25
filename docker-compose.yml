@@ -66,8 +66,12 @@ services:
       - MYSQL_DATABASE=${MYSQL_DATABASE:-ozmirror}
       - MYSQL_USER=${MYSQL_USER:-ozmirror}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - REDIS_URL=${REDIS_URL}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     depends_on:
       mysql:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - ozmirror-network

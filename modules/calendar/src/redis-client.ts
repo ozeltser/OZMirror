@@ -1,9 +1,11 @@
 /**
  * Redis pub/sub client for the Calendar module.
  *
- * Maintains a separate publisher client (for pub/sub) and a cache client
- * (for GET/SET operations). The calendar-manager uses the cache client
- * directly via getCacheClient().
+ * Maintains three Redis clients:
+ *   publisher   — publishes module:calendar:events on the refresh interval
+ *   cacheClient — GET/SET for calendar event cache (used by calendar-manager)
+ *   subscriber  — subscribes to events:config:calendar; invalidates the data
+ *                 cache for an instance immediately when its config changes
  *
  * Publishes to module:calendar:events whenever events are refreshed.
  */
@@ -16,12 +18,14 @@ const REDIS_URL = process.env.REDIS_URL ?? 'redis://redis:6379';
 const REDIS_PASSWORD = process.env.REDIS_PASSWORD ?? '';
 
 const CHANNEL = 'module:calendar:events';
+const CONFIG_CHANGE_CHANNEL = 'events:config:calendar';
 
 // Refresh interval: 15 minutes (matches cache TTL)
 const REFRESH_INTERVAL_MS = 15 * 60 * 1000;
 
 let publisher: RedisClientType | null = null;
 let cacheClient: RedisClientType | null = null;
+let subscriber: RedisClientType | null = null;
 let intervalHandle: ReturnType<typeof setInterval> | null = null;
 
 // Per-instance config map populated when /data is called
@@ -48,6 +52,19 @@ export async function connectRedis(): Promise<void> {
   cacheClient = createClient(clientOptions) as RedisClientType;
   cacheClient.on('error', (err) => console.error('[redis-client] Cache client error:', err));
   await cacheClient.connect();
+
+  subscriber = createClient(clientOptions) as RedisClientType;
+  subscriber.on('error', (err) => console.error('[redis-client] Subscriber error:', err));
+  await subscriber.connect();
+  await subscriber.subscribe(CONFIG_CHANGE_CHANNEL, async (message: string) => {
+    try {
+      const { instanceId } = JSON.parse(message) as { instanceId: string };
+      await invalidateCache(instanceId, cacheClient);
+      console.log(`[redis-client] Cache invalidated for ${instanceId} (config changed)`);
+    } catch (err) {
+      console.error('[redis-client] Config-change handler error:', err);
+    }
+  });
 
   console.log('[redis-client] Connected to Redis');
 }
@@ -106,6 +123,11 @@ export async function disconnectRedis(): Promise<void> {
   if (intervalHandle !== null) {
     clearInterval(intervalHandle);
     intervalHandle = null;
+  }
+  if (subscriber) {
+    await subscriber.unsubscribe(CONFIG_CHANGE_CHANNEL);
+    await subscriber.quit();
+    subscriber = null;
   }
   if (publisher) {
     await publisher.quit();
