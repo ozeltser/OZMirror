@@ -85,8 +85,26 @@ export async function invalidateCache(
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-const PRIVATE_HOST_RE = /^(localhost|127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.|0\.0\.0\.0|::1$)/;
+// Matches IPv4 private/reserved hostnames. `::1` is intentionally excluded
+// here because URL.hostname returns the bracketed form `[::1]` for IPv6
+// literals, which is handled separately below.
+const PRIVATE_HOST_RE = /^(localhost|127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.|0\.0\.0\.0$)/;
 
+/**
+ * Reject URLs that point at private/reserved addresses (SSRF prevention).
+ *
+ * Covers:
+ *  - IPv4 loopback / RFC 1918 / link-local / unspecified (via PRIVATE_HOST_RE)
+ *  - IPv6 loopback [::1] and Unique Local Addresses [fc…]/[fd…]
+ *    (URL.hostname includes the square brackets for IPv6 literals)
+ *
+ * Note: DNS-rebinding attacks (e.g. nip.io domains that resolve to 127.x)
+ * cannot be mitigated with hostname string checks alone — that would require
+ * resolving DNS before each request, which is out of scope here.
+ *
+ * Each module owns its own copy of this check because modules are isolated
+ * Docker containers with no shared source tree.
+ */
 function validateFeedUrl(feedUrl: string): void {
   let parsed: URL;
   try {
@@ -97,7 +115,13 @@ function validateFeedUrl(feedUrl: string): void {
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw new Error('Feed URL must use http or https');
   }
-  if (PRIVATE_HOST_RE.test(parsed.hostname.toLowerCase())) {
+  const hostname = parsed.hostname.toLowerCase();
+  if (PRIVATE_HOST_RE.test(hostname)) {
+    throw new Error('Feed URL targets a private or reserved address');
+  }
+  // IPv6 literals: URL.hostname wraps them in brackets (e.g. "[::1]")
+  if (hostname.startsWith('[') &&
+      (hostname === '[::1]' || hostname.startsWith('[fc') || hostname.startsWith('[fd'))) {
     throw new Error('Feed URL targets a private or reserved address');
   }
 }

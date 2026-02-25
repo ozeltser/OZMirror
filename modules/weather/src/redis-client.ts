@@ -74,6 +74,12 @@ export async function connectRedis(): Promise<void> {
         console.warn('[redis-client] Config-change message missing instanceId, ignoring');
         return;
       }
+      // Validate format to prevent attacker-controlled strings from being
+      // re-published as-is in Redis payloads (potential XSS on the frontend)
+      if (!/^[a-zA-Z0-9_-]+$/.test(instanceId)) {
+        console.warn(`[redis-client] Config-change message has invalid instanceId format, ignoring`);
+        return;
+      }
 
       // 1. Drop stale cache
       await invalidateCache(instanceId, cacheClient);
