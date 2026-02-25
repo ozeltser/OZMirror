@@ -4,14 +4,16 @@
  * Maintains three Redis clients:
  *   publisher   — publishes module:weather:data every 10 minutes
  *   cacheClient — GET/SET for weather data cache
- *   subscriber  — subscribes to events:config:weather; invalidates the data
- *                 cache for an instance immediately when its config changes
+ *   subscriber  — subscribes to events:config:weather; on config change:
+ *                 invalidates cache, re-fetches with new config, and immediately
+ *                 publishes to module:weather:data so the browser updates live
  *
  * Published message shape:
  *   { instanceId: string, data: WeatherData }
  */
 
 import { createClient, RedisClientType } from 'redis';
+import { fetchInstanceConfig, INSTANCE_ID_PATTERN } from './config-client';
 import type { WeatherConfig } from './config-client';
 import { getWeather, invalidateCache } from './weather-manager';
 
@@ -66,9 +68,39 @@ export async function connectRedis(): Promise<void> {
   await subscriber.connect();
   await subscriber.subscribe(CONFIG_CHANGE_CHANNEL, async (message: string) => {
     try {
-      const { instanceId } = JSON.parse(message) as { instanceId: string };
+      const parsed = JSON.parse(message) as unknown;
+      const instanceId = (parsed as Record<string, unknown>)?.instanceId;
+      if (typeof instanceId !== 'string') {
+        console.warn('[redis-client] Config-change message missing instanceId, ignoring');
+        return;
+      }
+      // Validate format to prevent attacker-controlled strings from being
+      // re-published as-is in Redis payloads (potential XSS on the frontend)
+      if (!INSTANCE_ID_PATTERN.test(instanceId)) {
+        console.warn(`[redis-client] Config-change message has invalid instanceId format, ignoring`);
+        return;
+      }
+
+      // 1. Drop stale cache
       await invalidateCache(instanceId, cacheClient);
-      console.log(`[redis-client] Cache invalidated for ${instanceId} (config changed)`);
+
+      // 2. Fetch the newly-saved config from the Config Service
+      // fetchInstanceConfig never rejects — it returns DEFAULT_CONFIG on error
+      const config = await fetchInstanceConfig(instanceId);
+      setInstanceConfig(instanceId, config);
+
+      // 3. Re-fetch weather with new config and push to browser via WebSocket bridge
+      if (WEATHER_API_KEY) {
+        const weatherData = await getWeather(
+          instanceId,
+          config.city,
+          config.units,
+          WEATHER_API_KEY,
+          cacheClient
+        );
+        await publisher!.publish(CHANNEL, JSON.stringify({ instanceId, data: weatherData }));
+        console.log(`[redis-client] Pushed updated weather for ${instanceId} (config changed)`);
+      }
     } catch (err) {
       console.error('[redis-client] Config-change handler error:', err);
     }

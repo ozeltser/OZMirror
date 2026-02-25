@@ -90,17 +90,65 @@ export async function invalidateCache(
 // Internal helpers
 // ---------------------------------------------------------------------------
 
+// Matches IPv4 private/reserved hostnames. `::1` is intentionally excluded
+// here because URL.hostname returns the bracketed form `[::1]` for IPv6
+// literals, which is handled separately below.
+const PRIVATE_HOST_RE = /^(localhost|127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.|0\.0\.0\.0$)/;
+
+/**
+ * Reject URLs that point at private/reserved addresses (SSRF prevention).
+ *
+ * Covers:
+ *  - IPv4 loopback / RFC 1918 / link-local / unspecified (via PRIVATE_HOST_RE)
+ *  - IPv6 loopback [::1] and Unique Local Addresses [fc…]/[fd…]
+ *    (URL.hostname includes the square brackets for IPv6 literals)
+ *
+ * Note: DNS-rebinding attacks (e.g. nip.io domains that resolve to 127.x)
+ * cannot be mitigated with hostname string checks alone — that would require
+ * resolving DNS before each request, which is out of scope here.
+ *
+ * Each module owns its own copy of this check because modules are isolated
+ * Docker containers with no shared source tree.
+ */
+function validateICalUrl(icalUrl: string): void {
+  let parsed: URL;
+  try {
+    parsed = new URL(icalUrl);
+  } catch {
+    throw new Error('Invalid iCal URL');
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error('iCal URL must use http or https');
+  }
+  const hostname = parsed.hostname.toLowerCase();
+  if (PRIVATE_HOST_RE.test(hostname)) {
+    throw new Error('iCal URL targets a private or reserved address');
+  }
+  // IPv6 literals: URL.hostname wraps them in brackets (e.g. "[::1]").
+  // Covers: loopback [::1], unspecified [::], IPv4-mapped [::ffff:*], ULA [fc*]/[fd*]
+  if (hostname.startsWith('[') &&
+      (hostname === '[::1]' ||
+       hostname === '[::]' ||
+       hostname.startsWith('[::ffff:') ||
+       hostname.startsWith('[fc') ||
+       hostname.startsWith('[fd'))) {
+    throw new Error('iCal URL targets a private or reserved address');
+  }
+}
+
 async function fetchAndParse(
   icalUrl: string,
   lookaheadDays: number,
   maxEvents: number
 ): Promise<CalendarEvent[]> {
+  validateICalUrl(icalUrl);
+
   // Fetch the raw iCal text
   let icalText: string;
   try {
     const response = await axios.get<string>(icalUrl, {
       timeout: 10_000,
-      maxRedirects: 5,
+      maxRedirects: 0, // no redirects — prevent SSRF via redirect to internal host
       responseType: 'text',
       headers: { 'User-Agent': 'OzMirror/1.0 (calendar module)' },
     });
