@@ -81,9 +81,11 @@ Then on the Pi, download and configure the runner. Check https://github.com/acti
 ```bash
 mkdir ~/actions-runner && cd ~/actions-runner
 
-# Download (replace 2.x.x with the current version)
+# Set the version once — update this to the latest from the releases page
+RUNNER_VERSION=2.x.x
+
 curl -o actions-runner-linux-arm64.tar.gz -L \
-  https://github.com/actions/runner/releases/download/v2.x.x/actions-runner-linux-arm64-2.x.x.tar.gz
+  "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-arm64-${RUNNER_VERSION}.tar.gz"
 
 tar xzf ./actions-runner-linux-arm64.tar.gz
 
@@ -122,10 +124,10 @@ sudo ./svc.sh status
 >
 > Log out and back in (or reboot) for the group change to take effect.
 
-> **Directory permissions:** The runner user must have write access to the deployment directory:
+> **Directory permissions:** The runner user must have write access to the deployment directory (substitute your actual `DEPLOY_PATH` secret value if it differs from the default):
 >
 > ```bash
-> sudo chown -R $(whoami):$(whoami) /opt/ozmirror
+> sudo chown -R $(whoami):$(whoami) /opt/ozmirror   # replace with your DEPLOY_PATH value
 > ```
 
 ---

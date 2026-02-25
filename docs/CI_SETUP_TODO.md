@@ -28,6 +28,8 @@ Complete these steps once after the pull request is merged. Detailed instruction
   Then log out and back in (or reboot) before continuing.
 
 - [ ] **2. Confirm the deployment directory exists and is writable**
+
+  *(Use the path you set as the `DEPLOY_PATH` secret — default is `/opt/ozmirror`)*
   ```bash
   ls /opt/ozmirror          # should show the repo
   touch /opt/ozmirror/.test && rm /opt/ozmirror/.test  # write check
@@ -40,11 +42,12 @@ Complete these steps once after the pull request is merged. Detailed instruction
   gh api -X POST repos/<owner>/OZMirror/actions/runners/registration-token --jq .token
   ```
 
-  Then on the Pi (replace `2.x.x` with the [latest runner version](https://github.com/actions/runner/releases) and paste the token):
+  Then on the Pi (set `RUNNER_VERSION` to the [latest release](https://github.com/actions/runner/releases) and paste the token):
   ```bash
   mkdir ~/actions-runner && cd ~/actions-runner
+  RUNNER_VERSION=2.x.x   # ← replace with the current version number
   curl -o actions-runner-linux-arm64.tar.gz -L \
-    https://github.com/actions/runner/releases/download/v2.x.x/actions-runner-linux-arm64-2.x.x.tar.gz
+    "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-arm64-${RUNNER_VERSION}.tar.gz"
   tar xzf ./actions-runner-linux-arm64.tar.gz
   ./config.sh \
     --url https://github.com/<owner>/OZMirror \
