@@ -1,8 +1,11 @@
 /**
  * Redis pub/sub client for the RSS module.
  *
- * Maintains a publisher (pub/sub) and a cache client (GET/SET).
- * Publishes to module:rss:data every 15 minutes.
+ * Maintains three Redis clients:
+ *   publisher   — publishes module:rss:data every 15 minutes
+ *   cacheClient — GET/SET for feed data cache
+ *   subscriber  — subscribes to events:config:rss; invalidates the data
+ *                 cache for an instance immediately when its config changes
  *
  * Published message shape:
  *   { instanceId: string, data: FeedData }
@@ -16,12 +19,14 @@ const REDIS_URL = process.env.REDIS_URL ?? 'redis://redis:6379';
 const REDIS_PASSWORD = process.env.REDIS_PASSWORD ?? '';
 
 const CHANNEL = 'module:rss:data';
+const CONFIG_CHANGE_CHANNEL = 'events:config:rss';
 
 // Refresh interval: 15 minutes (matches cache TTL)
 const REFRESH_INTERVAL_MS = 15 * 60 * 1000;
 
 let publisher: RedisClientType | null = null;
 let cacheClient: RedisClientType | null = null;
+let subscriber: RedisClientType | null = null;
 let intervalHandle: ReturnType<typeof setTimeout> | null = null;
 
 const MAX_INSTANCES = 50;
@@ -54,6 +59,19 @@ export async function connectRedis(): Promise<void> {
   cacheClient = createClient(clientOptions) as RedisClientType;
   cacheClient.on('error', (err) => console.error('[redis-client] Cache client error:', err));
   await cacheClient.connect();
+
+  subscriber = createClient(clientOptions) as RedisClientType;
+  subscriber.on('error', (err) => console.error('[redis-client] Subscriber error:', err));
+  await subscriber.connect();
+  await subscriber.subscribe(CONFIG_CHANGE_CHANNEL, async (message: string) => {
+    try {
+      const { instanceId } = JSON.parse(message) as { instanceId: string };
+      await invalidateCache(instanceId, cacheClient);
+      console.log(`[redis-client] Cache invalidated for ${instanceId} (config changed)`);
+    } catch (err) {
+      console.error('[redis-client] Config-change handler error:', err);
+    }
+  });
 
   console.log('[redis-client] Connected to Redis');
 }
@@ -117,6 +135,11 @@ export async function disconnectRedis(): Promise<void> {
   if (intervalHandle !== null) {
     clearTimeout(intervalHandle);
     intervalHandle = null;
+  }
+  if (subscriber) {
+    await subscriber.unsubscribe(CONFIG_CHANGE_CHANNEL);
+    await subscriber.quit();
+    subscriber = null;
   }
   if (publisher) {
     await publisher.quit();

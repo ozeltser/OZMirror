@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app import database as db_ops
+from app import redis_client
 from app.dependencies import get_db, require_api_key
 from app.models import (
     RegisteredModule,
@@ -107,4 +108,5 @@ async def update_instance_config(
     logger.info(
         "Updated instance config: module='%s' instance='%s'", module_id, instance_id
     )
+    await redis_client.publish_config_changed(module_id, instance_id)
     return SuccessResponse()

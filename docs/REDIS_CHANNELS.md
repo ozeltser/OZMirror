@@ -21,6 +21,11 @@ accessible to browser clients through the WebSocket Bridge.
 | `events:system` | System-wide events | `EDIT_MODE_CHANGED`, `THEME_CHANGED`, `LAYOUT_PROFILE_CHANGED`, `CONFIG_UPDATED` |
 | `events:ui` | UI interactions | `MODULE_CLICKED`, `LAYOUT_CHANGED`, `SETTINGS_OPENED` |
 | `events:modules:<name>` | Module lifecycle events | Heartbeat, error status |
+| `events:config:<name>` | Instance config changed — triggers immediate cache invalidation in the target module | `{"instanceId": "weather_01"}` |
+
+**`events:config:<name>` flow:**
+- **Publisher:** Config Service (`services/config`) — fires on every `PUT /api/config/modules/<id>/config/<instanceId>`
+- **Subscribers:** The matching module container (weather, rss, calendar) — calls `invalidateCache(instanceId)` immediately on receipt so the next data request fetches fresh data instead of serving a stale cached response
 
 ### Payload shape
 
@@ -29,6 +34,13 @@ accessible to browser clients through the WebSocket Bridge.
   "action": "EDIT_MODE_CHANGED",
   "enabled": true,
   "timestamp": 1708012345000
+}
+```
+
+`events:config:<name>` payload:
+```jsonc
+{
+  "instanceId": "weather_01"
 }
 ```
 

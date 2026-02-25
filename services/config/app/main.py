@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app import __version__
+from app import redis_client
 from app.database import SessionLocal, create_tables, seed_defaults
 from app.models import HealthResponse
 from app.routes import layout, modules, settings, validate
@@ -43,7 +44,15 @@ async def lifespan(app: FastAPI):
     finally:
         db.close()
     logger.info("Database ready")
+
+    try:
+        await redis_client.connect()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Redis unavailable at startup — cache invalidation disabled: %s", exc)
+
     yield
+
+    await redis_client.close()
     logger.info("Shutting down")
 
 # ---------------------------------------------------------------------------

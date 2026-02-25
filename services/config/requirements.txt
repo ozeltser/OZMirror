@@ -7,3 +7,4 @@ SQLAlchemy==2.0.27
 PyMySQL==1.1.0
 cryptography==42.0.4
 jsonschema==4.21.1
+redis==5.0.1
