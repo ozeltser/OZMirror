@@ -80,7 +80,7 @@ export async function connectRedis(): Promise<void> {
         );
         await publisher!.publish(
           CHANNEL,
-          JSON.stringify({ instanceId, events, fetchedAt: Date.now() })
+          JSON.stringify({ instanceId, data: { events, fetchedAt: Date.now() } })
         );
         console.log(`[redis-client] Pushed updated events for ${instanceId} (config changed)`);
       }
@@ -123,8 +123,7 @@ export function startPublishing(): void {
 
         const payload = JSON.stringify({
           instanceId,
-          events,
-          fetchedAt: Date.now(),
+          data: { events, fetchedAt: Date.now() },
         });
 
         await publisher!.publish(CHANNEL, payload);

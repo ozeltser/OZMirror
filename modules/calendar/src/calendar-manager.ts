@@ -90,11 +90,34 @@ export async function invalidateCache(
 // Internal helpers
 // ---------------------------------------------------------------------------
 
+const PRIVATE_HOST_RE = /^(localhost|127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.|0\.0\.0\.0|::1$)/;
+
+/**
+ * Reject URLs that point at private/reserved addresses (SSRF prevention).
+ * Mirrors the same validation in modules/rss/src/feed-manager.ts.
+ */
+function validateICalUrl(icalUrl: string): void {
+  let parsed: URL;
+  try {
+    parsed = new URL(icalUrl);
+  } catch {
+    throw new Error('Invalid iCal URL');
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error('iCal URL must use http or https');
+  }
+  if (PRIVATE_HOST_RE.test(parsed.hostname.toLowerCase())) {
+    throw new Error('iCal URL targets a private or reserved address');
+  }
+}
+
 async function fetchAndParse(
   icalUrl: string,
   lookaheadDays: number,
   maxEvents: number
 ): Promise<CalendarEvent[]> {
+  validateICalUrl(icalUrl);
+
   // Fetch the raw iCal text
   let icalText: string;
   try {
