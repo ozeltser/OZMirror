@@ -23,7 +23,7 @@ export const DEFAULT_CONFIG: RssConfig = {
   showDescription: true,
 };
 
-const INSTANCE_ID_PATTERN = /^[a-zA-Z0-9_-]+$/;
+export const INSTANCE_ID_PATTERN = /^[a-zA-Z0-9_-]+$/;
 
 /**
  * Register this module with the Config Service.

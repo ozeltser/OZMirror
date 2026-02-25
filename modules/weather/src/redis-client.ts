@@ -13,7 +13,7 @@
  */
 
 import { createClient, RedisClientType } from 'redis';
-import { fetchInstanceConfig } from './config-client';
+import { fetchInstanceConfig, INSTANCE_ID_PATTERN } from './config-client';
 import type { WeatherConfig } from './config-client';
 import { getWeather, invalidateCache } from './weather-manager';
 
@@ -76,7 +76,7 @@ export async function connectRedis(): Promise<void> {
       }
       // Validate format to prevent attacker-controlled strings from being
       // re-published as-is in Redis payloads (potential XSS on the frontend)
-      if (!/^[a-zA-Z0-9_-]+$/.test(instanceId)) {
+      if (!INSTANCE_ID_PATTERN.test(instanceId)) {
         console.warn(`[redis-client] Config-change message has invalid instanceId format, ignoring`);
         return;
       }

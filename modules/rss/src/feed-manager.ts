@@ -119,9 +119,14 @@ function validateFeedUrl(feedUrl: string): void {
   if (PRIVATE_HOST_RE.test(hostname)) {
     throw new Error('Feed URL targets a private or reserved address');
   }
-  // IPv6 literals: URL.hostname wraps them in brackets (e.g. "[::1]")
+  // IPv6 literals: URL.hostname wraps them in brackets (e.g. "[::1]").
+  // Covers: loopback [::1], unspecified [::], IPv4-mapped [::ffff:*], ULA [fc*]/[fd*]
   if (hostname.startsWith('[') &&
-      (hostname === '[::1]' || hostname.startsWith('[fc') || hostname.startsWith('[fd'))) {
+      (hostname === '[::1]' ||
+       hostname === '[::]' ||
+       hostname.startsWith('[::ffff:') ||
+       hostname.startsWith('[fc') ||
+       hostname.startsWith('[fd'))) {
     throw new Error('Feed URL targets a private or reserved address');
   }
 }
