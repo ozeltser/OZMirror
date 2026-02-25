@@ -45,7 +45,7 @@ Complete these steps once after the pull request is merged. Detailed instruction
   Then on the Pi (set `RUNNER_VERSION` to the [latest release](https://github.com/actions/runner/releases) and paste the token):
   ```bash
   mkdir ~/actions-runner && cd ~/actions-runner
-  RUNNER_VERSION=2.x.x   # ← replace with the current version number
+  RUNNER_VERSION=$(curl -s https://api.github.com/repos/actions/runner/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')   # ← Fetches latest version automatically
   curl -o actions-runner-linux-arm64.tar.gz -L \
     "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-arm64-${RUNNER_VERSION}.tar.gz"
   tar xzf ./actions-runner-linux-arm64.tar.gz
