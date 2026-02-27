@@ -4,14 +4,16 @@
  * Maintains three Redis clients:
  *   publisher   — publishes module:rss:data every 15 minutes
  *   cacheClient — GET/SET for feed data cache
- *   subscriber  — subscribes to events:config:rss; invalidates the data
- *                 cache for an instance immediately when its config changes
+ *   subscriber  — subscribes to events:config:rss; on config change:
+ *                 invalidates cache, re-fetches with new config, and immediately
+ *                 publishes to module:rss:data so the browser updates live
  *
  * Published message shape:
  *   { instanceId: string, data: FeedData }
  */
 
 import { createClient, RedisClientType } from 'redis';
+import { fetchInstanceConfig, INSTANCE_ID_PATTERN } from './config-client';
 import type { RssConfig } from './config-client';
 import { getFeed, invalidateCache } from './feed-manager';
 
@@ -65,9 +67,33 @@ export async function connectRedis(): Promise<void> {
   await subscriber.connect();
   await subscriber.subscribe(CONFIG_CHANGE_CHANNEL, async (message: string) => {
     try {
-      const { instanceId } = JSON.parse(message) as { instanceId: string };
+      const parsed = JSON.parse(message) as unknown;
+      const instanceId = (parsed as Record<string, unknown>)?.instanceId;
+      if (typeof instanceId !== 'string') {
+        console.warn('[redis-client] Config-change message missing instanceId, ignoring');
+        return;
+      }
+      // Validate format to prevent attacker-controlled strings from being
+      // re-published as-is in Redis payloads (potential XSS on the frontend)
+      if (!INSTANCE_ID_PATTERN.test(instanceId)) {
+        console.warn(`[redis-client] Config-change message has invalid instanceId format, ignoring`);
+        return;
+      }
+
+      // 1. Drop stale cache
       await invalidateCache(instanceId, cacheClient);
-      console.log(`[redis-client] Cache invalidated for ${instanceId} (config changed)`);
+
+      // 2. Fetch the newly-saved config from the Config Service
+      // fetchInstanceConfig never rejects — it returns DEFAULT_CONFIG on error
+      const config = await fetchInstanceConfig(instanceId);
+      setInstanceConfig(instanceId, config);
+
+      // 3. Re-fetch feed with new config and push to browser via WebSocket bridge
+      if (config.feedUrl) {
+        const feedData = await getFeed(instanceId, config.feedUrl, config.maxItems, cacheClient);
+        await publisher!.publish(CHANNEL, JSON.stringify({ instanceId, data: feedData }));
+        console.log(`[redis-client] Pushed updated feed for ${instanceId} (config changed)`);
+      }
     } catch (err) {
       console.error('[redis-client] Config-change handler error:', err);
     }
