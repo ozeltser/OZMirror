@@ -56,13 +56,12 @@ The WebSocket Bridge enforces the whitelist at connect time.
 | `module:calendar:<detail>` | `module:calendar:events` |
 | `module:rss:<detail>` | `module:rss:feed` |
 | `module:system_stats:<detail>` | `module:system_stats:cpu` |
-| `module:now_playing:<detail>` | `module:now_playing:track` |
 | `module:sticky_notes:<detail>` | `module:sticky_notes:notes` |
 
 ### Regex (enforced in `services/websocket/src/server.ts`)
 
 ```
-^module:(clock|weather|calendar|rss|system_stats|now_playing|sticky_notes):.+$
+^module:(clock|weather|calendar|rss|system_stats|sticky_notes):.+$
 ```
 
 ### Payload shape
