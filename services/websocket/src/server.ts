@@ -33,7 +33,7 @@ function isAllowedOrigin(origin: string): boolean {
 // Both subscribe and publish are restricted to module-owned channels.
 // System/internal channels must not be readable or writable by browser clients.
 const ALLOWED_MODULE_CHANNELS =
-  /^module:(clock|weather|calendar|rss|system_stats|now_playing|sticky_notes):.+$/;
+  /^module:(clock|weather|calendar|rss|system_stats|sticky_notes):.+$/;
 
 // ── HTTP server ────────────────────────────────────────────────────────────
 // Handle /health directly; all other requests are handled by Socket.io.
